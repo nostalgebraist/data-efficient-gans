@@ -54,6 +54,7 @@ def setup_training_loop_kwargs(
     style_mixing_prob= None,
     disable_lazy_reg = None, # disable lazy reg: <bool>
     map_override     = None,
+    lr_override      = None,
 
     # Discriminator augmentation.
     diffaugment= None, # Comma-separated list of DiffAugment policy, default = 'color,translation,cutout'
@@ -178,19 +179,25 @@ def setup_training_loop_kwargs(
         desc += f'{gpus:d}'
         spec.ref_gpus = gpus
         res = args.training_set_kwargs.resolution
-        spec.mb = max(min(gpus * min(4096 // res, 32), 64), gpus) # keep gpu memory consumption at bay
+        if batch is not None:
+            spec.mb = batch
+        else:
+            spec.mb = max(min(gpus * min(4096 // res, 32), 64), gpus) # keep gpu memory consumption at bay
         spec.mbstd = min(spec.mb // gpus, 4) # other hyperparams behave more predictably if mbstd group size remains fixed
         spec.fmaps = 1 # if res >= 512 else 0.5
-        spec.lrate = 0.002 if res >= 1024 else 0.0025
+        if lr_override is not None:
+            spec.lrate = lr_override
+        else:
+            spec.lrate = 0.002 if res >= 1024 else 0.0025
         spec.gamma = 0.0002 * (res ** 2) / spec.mb # heuristic formula
         spec.ema = spec.mb * 10 / 32
 
     if spec.ref_gpus < 0:
         spec.ref_gpus = gpus
-    
+
     if spec.get('snap', None):
         args.image_snapshot_ticks = args.network_snapshot_ticks = spec.snap
-    
+
     if latent_size is None:
         latent_size = 512
 
@@ -462,6 +469,7 @@ class CommaSeparatedList(click.ParamType):
 @click.option('--style-mixing-prob', type=float)
 @click.option('--disable-lazy-reg', type=bool, metavar='BOOL')
 @click.option('--map-override', type=int, metavar='INT')
+@click.option('--lr-override', type=float)
 
 # Discriminator augmentation.
 @click.option('--DiffAugment', help='Comma-separated list of DiffAugment policy [default: color,translation,cutout]', type=str)
