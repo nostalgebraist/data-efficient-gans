@@ -50,6 +50,9 @@ def setup_training_loop_kwargs(
 
     # nost
     latent_size      = None, # Override latent_size: <int>
+    pl_weight        = None, # Override path length reg: <float>
+    style_mixing_prob= None,
+    disable_lazy_reg = None, # disable lazy reg: <bool>
 
     # Discriminator augmentation.
     diffaugment= None, # Comma-separated list of DiffAugment policy, default = 'color,translation,cutout'
@@ -196,6 +199,10 @@ def setup_training_loop_kwargs(
     args.G_kwargs.synthesis_kwargs.conv_clamp = args.D_kwargs.conv_clamp = 256 # clamp activations to avoid float16 overflow
     args.D_kwargs.epilogue_kwargs.mbstd_group_size = spec.mbstd
 
+    if disable_lazy_reg:
+        args.G_reg_interval = None
+        args.D_reg_interval = None
+
     args.G_opt_kwargs = dnnlib.EasyDict(class_name='torch.optim.Adam', lr=spec.lrate, betas=[0,0.99], eps=1e-8)
     args.D_opt_kwargs = dnnlib.EasyDict(class_name='torch.optim.Adam', lr=spec.lrate, betas=[0,0.99], eps=1e-8)
     args.loss_kwargs = dnnlib.EasyDict(class_name='training.loss.StyleGAN2Loss', r1_gamma=spec.gamma)
@@ -210,6 +217,12 @@ def setup_training_loop_kwargs(
         args.loss_kwargs.pl_weight = 0 # disable path length regularization
         args.loss_kwargs.style_mixing_prob = 0 # disable style mixing
         args.D_kwargs.architecture = 'orig' # disable residual skip connections
+
+    if pl_weight is not None:
+        args.loss_kwargs.pl_weight = pl_weight
+
+    if style_mixing_prob is not None:
+        args.loss_kwargs.style_mixing_prob = style_mixing_prob
 
     if gamma is not None:
         assert isinstance(gamma, float)
@@ -441,6 +454,9 @@ class CommaSeparatedList(click.ParamType):
 
 # nost
 @click.option('--latent-size', type=int, metavar='INT')
+@click.option('--pl-weight', type=float)
+@click.option('--style-mixing-prob', type=float)
+@click.option('--disable-lazy-reg', type=bool, metavar='BOOL')
 
 # Discriminator augmentation.
 @click.option('--DiffAugment', help='Comma-separated list of DiffAugment policy [default: color,translation,cutout]', type=str)
