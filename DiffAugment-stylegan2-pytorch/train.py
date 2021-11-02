@@ -165,10 +165,6 @@ def setup_training_loop_kwargs(
     if map_override is None:
         map_override = 8
 
-    if fmaps is None:
-        # only affects 'auto'
-        fmaps = 0.5
-
     cfg_specs = {
         'low_shot':  dict(ref_gpus=-1, kimg=300,    mb=8,  mbstd=4,  fmaps=1,   lrate=0.002,  gamma=10,   ema=10,  ramp=None, map=2, snap=10),
         'auto':      dict(ref_gpus=-1, kimg=300,  mb=-1, mbstd=-1, fmaps=fmaps,  lrate=-1,     gamma=-1,   ema=-1,  ramp=0.05, map=map_override), # Populated dynamically based on resolution and GPU count.
@@ -190,7 +186,10 @@ def setup_training_loop_kwargs(
         else:
             spec.mb = max(min(gpus * min(4096 // res, 32), 64), gpus) # keep gpu memory consumption at bay
         spec.mbstd = min(spec.mb // gpus, 4) # other hyperparams behave more predictably if mbstd group size remains fixed
-        spec.fmaps = 1 # if res >= 512 else 0.5
+        if fmaps is not None:
+            spec.fmaps = fmaps
+        else:
+            spec.fmaps = 1 if res >= 512 else 0.5
         if lr_override is not None:
             spec.lrate = lr_override
         else:
