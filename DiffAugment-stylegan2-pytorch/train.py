@@ -85,7 +85,7 @@ def setup_training_loop_kwargs(
     if snap < 1:
         raise UserError('--snap must be at least 1')
     args.image_snapshot_ticks = snap
-    args.network_snapshot_ticks = snap
+    args.network_snapshot_ticks = 100 # snap
 
     if metrics is None:
         metrics = ['fid50k_full']
@@ -154,7 +154,7 @@ def setup_training_loop_kwargs(
 
     cfg_specs = {
         'low_shot':  dict(ref_gpus=-1, kimg=300,    mb=8,  mbstd=4,  fmaps=1,   lrate=0.002,  gamma=10,   ema=10,  ramp=None, map=2, snap=10),
-        'auto':      dict(ref_gpus=-1, kimg=25000,  mb=-1, mbstd=-1, fmaps=-1,  lrate=-1,     gamma=-1,   ema=-1,  ramp=0.05, map=2), # Populated dynamically based on resolution and GPU count.
+        'auto':      dict(ref_gpus=-1, kimg=25000,  mb=-1, mbstd=-1, fmaps=1,  lrate=-1,     gamma=-1,   ema=-1,  ramp=0.05, map=8), # Populated dynamically based on resolution and GPU count.
         'stylegan2': dict(ref_gpus=8,  kimg=25000,  mb=32, mbstd=4,  fmaps=1,   lrate=0.002,  gamma=10,   ema=10,  ramp=None, map=8), # Uses mixed-precision, unlike the original StyleGAN2.
         'paper256':  dict(ref_gpus=8,  kimg=25000,  mb=64, mbstd=8,  fmaps=0.5, lrate=0.0025, gamma=1,    ema=20,  ramp=None, map=8),
         'paper512':  dict(ref_gpus=8,  kimg=25000,  mb=64, mbstd=8,  fmaps=1,   lrate=0.0025, gamma=0.5,  ema=20,  ramp=None, map=8),
@@ -170,7 +170,7 @@ def setup_training_loop_kwargs(
         res = args.training_set_kwargs.resolution
         spec.mb = max(min(gpus * min(4096 // res, 32), 64), gpus) # keep gpu memory consumption at bay
         spec.mbstd = min(spec.mb // gpus, 4) # other hyperparams behave more predictably if mbstd group size remains fixed
-        spec.fmaps = 1 if res >= 512 else 0.5
+        spec.fmaps = 1 # if res >= 512 else 0.5
         spec.lrate = 0.002 if res >= 1024 else 0.0025
         spec.gamma = 0.0002 * (res ** 2) / spec.mb # heuristic formula
         spec.ema = spec.mb * 10 / 32

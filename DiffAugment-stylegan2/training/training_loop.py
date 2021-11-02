@@ -61,8 +61,9 @@ def training_schedule(
         D_lrate_base=0.002,    # Learning rate for the discriminator.
         D_lrate_dict={},       # Resolution-specific overrides.
         lrate_rampup_kimg=0,        # Duration of learning rate ramp-up.
-        tick_kimg_base=4,        # Default interval of progress snapshots.
-        tick_kimg_dict={8: 28, 16: 24, 32: 20, 64: 16, 128: 12, 256: 10, 512: 10, 1024: 10}):  # Resolution-specific overrides.
+        tick_kimg_base=1,        # Default interval of progress snapshots.
+        tick_kimg_dict={},#{8: 28, 16: 24, 32: 20, 64: 16, 128: 12, 256: 10, 512: 10, 1024: 10}
+        ):  # Resolution-specific overrides.
 
     # Initialize result dict.
     s = dnnlib.EasyDict()
@@ -128,7 +129,7 @@ def training_loop(
         mirror_augment=False,    # Enable mirror augment?
         drange_net=[-1, 1],   # Dynamic range used when feeding image data to the networks.
         image_snapshot_ticks=10,       # How often to save image snapshots? None = only save 'reals.png' and 'fakes-init.png'.
-        network_snapshot_ticks=10,       # How often to save network snapshots? None = only save 'networks-final.pkl'.
+        network_snapshot_ticks=100,       # How often to save network snapshots? None = only save 'networks-final.pkl'.
         save_tf_graph=False,    # Include full TensorFlow computation graph in the tfevents file?
         save_weight_histograms=False,    # Include weight histograms in the tfevents file?
         resume_pkl=None,     # Network pickle to resume training from, None = train from scratch.
