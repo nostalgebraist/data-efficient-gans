@@ -57,6 +57,7 @@ def setup_training_loop_kwargs(
     disable_lazy_reg = None, # disable lazy reg: <bool>
     map_override     = None,
     lr_override      = None,
+    ema              = None,
 
     # Discriminator augmentation.
     diffaugment= None, # Comma-separated list of DiffAugment policy, default = 'color,translation,cutout'
@@ -196,6 +197,9 @@ def setup_training_loop_kwargs(
             spec.lrate = 0.002 if res >= 1024 else 0.0025
         spec.gamma = 0.0002 * (res ** 2) / spec.mb # heuristic formula
         # spec.ema = spec.mb * 10 / 32
+
+    if ema is not None:
+        spec.ema = ema
 
     if spec.ref_gpus < 0:
         spec.ref_gpus = gpus
@@ -480,6 +484,7 @@ class CommaSeparatedList(click.ParamType):
 @click.option('--disable-lazy-reg', type=bool, metavar='BOOL')
 @click.option('--map-override', type=int, metavar='INT')
 @click.option('--lr-override', type=float)
+@click.option('--ema-override', type=int)
 
 # Discriminator augmentation.
 @click.option('--DiffAugment', help='Comma-separated list of DiffAugment policy [default: color,translation,cutout]', type=str)
