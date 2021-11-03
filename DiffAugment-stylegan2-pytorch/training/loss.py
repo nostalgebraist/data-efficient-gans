@@ -23,7 +23,7 @@ class Loss:
 #----------------------------------------------------------------------------
 
 class StyleGAN2Loss(Loss):
-    def __init__(self, device, G_mapping, G_synthesis, D, diffaugment='', augment_pipe=None, style_mixing_prob=0.9, r1_gamma=10, pl_batch_shrink=2, pl_decay=0.01, pl_weight=2):
+    def __init__(self, device, G_mapping, G_synthesis, D, diffaugment='', augment_pipe=None, style_mixing_prob=0.9, r1_gamma=10, pl_batch_shrink=2, pl_decay=0.01, pl_weight=2, r1_no_aug=False):
         super().__init__()
         self.device = device
         self.G_mapping = G_mapping
@@ -37,6 +37,7 @@ class StyleGAN2Loss(Loss):
         self.pl_decay = pl_decay
         self.pl_weight = pl_weight
         self.pl_mean = torch.zeros([], device=device)
+        self.r1_no_aug = r1_no_aug
 
     def run_G(self, z, c, sync):
         with misc.ddp_sync(self.G_mapping, sync):
@@ -50,8 +51,8 @@ class StyleGAN2Loss(Loss):
             img = self.G_synthesis(ws)
         return img, ws
 
-    def run_D(self, img, c, sync):
-        if self.diffaugment:
+    def run_D(self, img, c, sync, force_disable_aug=False):
+        if self.diffaugment and (not force_disable_aug):
             img = DiffAugment(img, policy=self.diffaugment)
         if self.augment_pipe is not None:
             img = self.augment_pipe(img)
@@ -114,7 +115,13 @@ class StyleGAN2Loss(Loss):
             name = 'Dreal_Dr1' if do_Dmain and do_Dr1 else 'Dreal' if do_Dmain else 'Dr1'
             with torch.autograd.profiler.record_function(name + '_forward'):
                 real_img_tmp = real_img.detach().requires_grad_(do_Dr1)
-                real_logits = self.run_D(real_img_tmp, real_c, sync=sync)
+                real_logits, real_logits_aug = None, None
+                if 'Dr1' in name:
+                    real_logits_aug = self.run_D(real_img_tmp, real_c, sync=sync, force_disable_aug=self.r1_no_aug)
+                if 'Dreal' in name:
+                    real_logits = self.run_D(real_img_tmp, real_c, sync=sync)
+                else:
+                    real_logits = real_logits_aug
                 training_stats.report('Loss/scores/real', real_logits)
                 training_stats.report('Loss/signs/real', real_logits.sign())
 
@@ -126,7 +133,7 @@ class StyleGAN2Loss(Loss):
                 loss_Dr1 = 0
                 if do_Dr1:
                     with torch.autograd.profiler.record_function('r1_grads'), conv2d_gradfix.no_weight_gradients():
-                        r1_grads = torch.autograd.grad(outputs=[real_logits.sum()], inputs=[real_img_tmp], create_graph=True, only_inputs=True)[0]
+                        r1_grads = torch.autograd.grad(outputs=[real_logits_aug.sum()], inputs=[real_img_tmp], create_graph=True, only_inputs=True)[0]
                     r1_penalty = r1_grads.square().sum([1,2,3])
                     loss_Dr1 = r1_penalty * (self.r1_gamma / 2)
                     training_stats.report('Loss/r1_penalty', r1_penalty)

@@ -58,6 +58,7 @@ def setup_training_loop_kwargs(
     map_override     = None,
     lr_override      = None,
     ema_override     = None,
+    r1_no_aug        = False,
 
     # Discriminator augmentation.
     diffaugment= None, # Comma-separated list of DiffAugment policy, default = 'color,translation,cutout'
@@ -228,7 +229,8 @@ def setup_training_loop_kwargs(
 
     args.G_opt_kwargs = dnnlib.EasyDict(class_name='torch.optim.Adam', lr=spec.lrate, betas=[0,0.99], eps=1e-8)
     args.D_opt_kwargs = dnnlib.EasyDict(class_name='torch.optim.Adam', lr=spec.lrate, betas=[0,0.99], eps=1e-8)
-    args.loss_kwargs = dnnlib.EasyDict(class_name='training.loss.StyleGAN2Loss', r1_gamma=spec.gamma)
+    args.loss_kwargs = dnnlib.EasyDict(class_name='training.loss.StyleGAN2Loss', r1_gamma=spec.gamma,
+                                       r1_no_aug=r1_no_aug)
 
     args.total_kimg = spec.kimg
     args.batch_size = spec.mb
@@ -485,6 +487,7 @@ class CommaSeparatedList(click.ParamType):
 @click.option('--map-override', type=int, metavar='INT')
 @click.option('--lr-override', type=float)
 @click.option('--ema-override', type=int)
+@click.option('--r1-no-aug', type=bool, metavar='BOOL')  # paper, A.3 para 3
 
 # Discriminator augmentation.
 @click.option('--DiffAugment', help='Comma-separated list of DiffAugment policy [default: color,translation,cutout]', type=str)
