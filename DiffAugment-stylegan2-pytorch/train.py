@@ -57,7 +57,7 @@ def setup_training_loop_kwargs(
     disable_lazy_reg = None, # disable lazy reg: <bool>
     map_override     = None,
     lr_override      = None,
-    ema              = None,
+    ema_override     = None,
 
     # Discriminator augmentation.
     diffaugment= None, # Comma-separated list of DiffAugment policy, default = 'color,translation,cutout'
@@ -198,8 +198,8 @@ def setup_training_loop_kwargs(
         spec.gamma = 0.0002 * (res ** 2) / spec.mb # heuristic formula
         # spec.ema = spec.mb * 10 / 32
 
-    if ema is not None:
-        spec.ema = ema
+    if ema_override is not None:
+        spec.ema = ema_override
 
     if spec.ref_gpus < 0:
         spec.ref_gpus = gpus
