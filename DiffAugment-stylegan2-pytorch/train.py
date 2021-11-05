@@ -58,6 +58,7 @@ def setup_training_loop_kwargs(
     map_override     = None,
     lr_override      = None,
     ema_override     = None,
+    ramp_override    = None,
 
     # Discriminator augmentation.
     diffaugment= None, # Comma-separated list of DiffAugment policy, default = 'color,translation,cutout'
@@ -168,7 +169,7 @@ def setup_training_loop_kwargs(
 
     cfg_specs = {
         'low_shot':  dict(ref_gpus=-1, kimg=300,    mb=8,  mbstd=4,  fmaps=1,   lrate=0.002,  gamma=10,   ema=10,  ramp=None, map=2, snap=10),
-        'auto':      dict(ref_gpus=-1, kimg=300,  mb=-1, mbstd=-1, fmaps=fmaps,  lrate=-1,     gamma=-1,   ema=10,  ramp=0.05, map=map_override), # Populated dynamically based on resolution and GPU count.
+        'auto':      dict(ref_gpus=-1, kimg=300,  mb=-1, mbstd=-1, fmaps=fmaps,  lrate=-1,     gamma=-1,   ema=10,  ramp=ramp_override, map=map_override), # Populated dynamically based on resolution and GPU count.
         'stylegan2': dict(ref_gpus=8,  kimg=25000,  mb=32, mbstd=4,  fmaps=1,   lrate=0.002,  gamma=10,   ema=10,  ramp=None, map=8), # Uses mixed-precision, unlike the original StyleGAN2.
         'paper256':  dict(ref_gpus=8,  kimg=25000,  mb=64, mbstd=8,  fmaps=0.5, lrate=0.0025, gamma=1,    ema=20,  ramp=None, map=8),
         'paper512':  dict(ref_gpus=8,  kimg=25000,  mb=64, mbstd=8,  fmaps=1,   lrate=0.0025, gamma=0.5,  ema=20,  ramp=None, map=8),
@@ -485,6 +486,7 @@ class CommaSeparatedList(click.ParamType):
 @click.option('--map-override', type=int, metavar='INT')
 @click.option('--lr-override', type=float)
 @click.option('--ema-override', type=int)
+@click.option('--ramp-override', type=float)
 
 # Discriminator augmentation.
 @click.option('--DiffAugment', help='Comma-separated list of DiffAugment policy [default: color,translation,cutout]', type=str)
