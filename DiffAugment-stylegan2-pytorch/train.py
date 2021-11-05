@@ -495,6 +495,7 @@ class CommaSeparatedList(click.ParamType):
 @click.option('--lr-override', type=float)
 @click.option('--ema-override', type=int)
 @click.option('--ramp-override', type=float)
+@click.option('--use-bf16', type=bool)
 
 # Discriminator augmentation.
 @click.option('--DiffAugment', help='Comma-separated list of DiffAugment policy [default: color,translation,cutout]', type=str)
