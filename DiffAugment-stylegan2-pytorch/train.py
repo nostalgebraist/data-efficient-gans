@@ -59,6 +59,7 @@ def setup_training_loop_kwargs(
     lr_override      = None,
     ema_override     = None,
     ramp_override    = None,
+    bf16             = None,
 
     # Discriminator augmentation.
     diffaugment= None, # Comma-separated list of DiffAugment policy, default = 'color,translation,cutout'
@@ -387,6 +388,13 @@ def setup_training_loop_kwargs(
         fp32 = False
     assert isinstance(fp32, bool)
     if fp32:
+        args.G_kwargs.synthesis_kwargs.num_fp16_res = args.D_kwargs.num_fp16_res = 0
+        args.G_kwargs.synthesis_kwargs.conv_clamp = args.D_kwargs.conv_clamp = None
+
+    if bf16 is None:
+        bf16 = False
+    if bf16:
+        args.G_kwargs.synthesis_kwargs.use_bf16 = args.D_kwargs.use_bf16 = True
         args.G_kwargs.synthesis_kwargs.num_fp16_res = args.D_kwargs.num_fp16_res = 0
         args.G_kwargs.synthesis_kwargs.conv_clamp = args.D_kwargs.conv_clamp = None
 
