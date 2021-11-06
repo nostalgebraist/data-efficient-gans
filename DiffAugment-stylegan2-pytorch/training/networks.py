@@ -491,7 +491,7 @@ class SynthesisNetwork(torch.nn.Module):
 
 #----------------------------------------------------------------------------
 
-from x_transformers import TransformerWrapper, Encoder
+from x_transformers import TransformerWrapper, Encoder, XTransformer
 
 
 @persistence.persistent_class
@@ -504,25 +504,55 @@ class TextEncoder(torch.nn.Module):
         max_seq_len = 130,
         rotary_pos_emb = True,
         ff_glu = True,
+        use_encoder_decoder = False,
+        dec_num_tokens = 1024
+        encoder_kwargs = {}
     ):
         super().__init__()
         assert w_dim % head_dim == 0
         n_heads = w_dim // head_dim
 
-        self.model = TransformerWrapper(
-            num_tokens = num_tokens,
-            max_seq_len = max_seq_len,
-            attn_layers = Encoder(
+        self.use_encoder_decoder = use_encoder_decoder
+
+        if self.use_encoder_decoder:
+            enc_kwargs = dict(
                 dim = w_dim,
                 depth = depth,
                 heads = n_heads,
                 rotary_pos_emb = rotary_pos_emb,
                 ff_glu = ff_glu
             )
-        )
+            enc_kwargs = {k: encoder_kwargs.get(k, v) for k, v in encoder_kwargs.items()}
+            enc_kwargs = {'enc_' + k: v for k, v in encoder_kwargs.items()}
+            self.model = XTransformer(
+                enc_num_tokens = num_tokens,
+                dec_num_tokens = dec_num_tokens,
+                max_seq_len = max_seq_len,
+                dec_dim = w_dim,
+                dec_depth = depth,
+                dec_heads = n_heads,
+                dec_rotary_pos_emb = rotary_pos_emb,
+                dec_ff_glu = ff_glu,
+                **enc_kwargs
+            )
+        else:
+            self.model = TransformerWrapper(
+                num_tokens = num_tokens,
+                max_seq_len = max_seq_len,
+                attn_layers = Encoder(
+                    dim = w_dim,
+                    depth = depth,
+                    heads = n_heads,
+                    rotary_pos_emb = rotary_pos_emb,
+                    ff_glu = ff_glu
+                )
+            )
 
     def forward(self, tokens):
-        return self.model(tokens, return_embeddings=True)[:, 0, :]
+        if self.use_encoder_decoder:
+            raise NotImplementedError
+        else:
+            return self.model(tokens, return_embeddings=True)[:, 0, :]
 
 
 #----------------------------------------------------------------------------
