@@ -183,6 +183,7 @@ class MappingNetwork(torch.nn.Module):
         activation      = 'lrelu',  # Activation function: 'relu', 'lrelu', etc.
         lr_multiplier   = 0.01,     # Learning rate multiplier for the mapping layers.
         w_avg_beta      = 0.995,    # Decay for tracking the moving average of W during training, None = do not track.
+        use_text_encoder=False,
     ):
         super().__init__()
         self.z_dim = z_dim
@@ -191,6 +192,8 @@ class MappingNetwork(torch.nn.Module):
         self.num_ws = num_ws
         self.num_layers = num_layers
         self.w_avg_beta = w_avg_beta
+
+        self.text_encoder = None if not use_text_encoder else TextEncoder(w_dim=w_dim, **text_kwargs)
 
         if embed_features is None:
             embed_features = w_dim
@@ -211,7 +214,7 @@ class MappingNetwork(torch.nn.Module):
         if num_ws is not None and w_avg_beta is not None:
             self.register_buffer('w_avg', torch.zeros([w_dim]))
 
-    def forward(self, z, c, truncation_psi=1, truncation_cutoff=None, skip_w_avg_update=False):
+    def forward(self, z, c, txt=None, truncation_psi=1, truncation_cutoff=None, skip_w_avg_update=False):
         # Embed, normalize, and concat inputs.
         x = None
         with torch.autograd.profiler.record_function('input'):
@@ -232,6 +235,11 @@ class MappingNetwork(torch.nn.Module):
         if self.w_avg_beta is not None and self.training and not skip_w_avg_update:
             with torch.autograd.profiler.record_function('update_w_avg'):
                 self.w_avg.copy_(x.detach().mean(dim=0).lerp(self.w_avg, self.w_avg_beta))
+
+        if txt is not None:
+            # TODO: do this after truncate
+            ws_txt = self.text_encoder(txt)
+            x = x + ws_txt
 
         # Broadcast.
         if self.num_ws is not None:
@@ -478,7 +486,6 @@ class SynthesisNetwork(torch.nn.Module):
 
 #----------------------------------------------------------------------------
 
-import tokenizers
 from x_transformers import TransformerWrapper, Encoder
 
 
@@ -491,14 +498,9 @@ class TextEncoder(torch.nn.Module):
         max_seq_len = 130,
         rotary_pos_emb = True,
         ff_glu = True,
-        tokenizer_path = 'tokenizer_file',
     ):
         assert w_dim % head_dim == 0
         n_heads = w_dim // head_dim
-
-        self.tokenizer = tokenizers.Tokenizer.from_file(tokenizer_path)
-        self.tokenizer.enable_truncatation(max_seq_len)
-        self.tokenizer.enable_padding()
 
         self.model = TransformerWrapper(
             num_tokens = self.tokenizer.get_vocab_size(),
@@ -512,7 +514,8 @@ class TextEncoder(torch.nn.Module):
             )
         )
 
-    
+    def forward(self, tokens):
+        return self.model(tokens, return_embeddings=True)
 
 
 #----------------------------------------------------------------------------
@@ -538,11 +541,13 @@ class Generator(torch.nn.Module):
         self.img_channels = img_channels
         self.synthesis = SynthesisNetwork(w_dim=w_dim, img_resolution=img_resolution, img_channels=img_channels, **synthesis_kwargs)
         self.num_ws = self.synthesis.num_ws
-        self.mapping = MappingNetwork(z_dim=z_dim, c_dim=c_dim, w_dim=w_dim, num_ws=self.num_ws, **mapping_kwargs)
-        self.use_text_encoder = None if not use_text_encoder else TextEncoder(w_dim=w_dim, **text_kwargs)
+        self.mapping = MappingNetwork(z_dim=z_dim, c_dim=c_dim, w_dim=w_dim, num_ws=self.num_ws,
+                                      use_text_encoder=use_text_encoder,
+                                      **mapping_kwargs)
 
-    def forward(self, z, c, truncation_psi=1, truncation_cutoff=None, **synthesis_kwargs):
-        ws = self.mapping(z, c, truncation_psi=truncation_psi, truncation_cutoff=truncation_cutoff)
+    def forward(self, z, c, txt=None, truncation_psi=1, truncation_cutoff=None, **synthesis_kwargs):
+        ws = self.mapping(z, c, txt, truncation_psi=truncation_psi, truncation_cutoff=truncation_cutoff)
+
         img = self.synthesis(ws, **synthesis_kwargs)
         return img
 

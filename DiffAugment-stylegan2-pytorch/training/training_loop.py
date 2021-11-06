@@ -257,7 +257,14 @@ def training_loop(
 
         # Fetch training data.
         with torch.autograd.profiler.record_function('data_fetch'):
-            phase_real_img, phase_real_c = next(training_set_iterator)
+            b = next(training_set_iterator)
+            if len(b) == 3:
+                phase_real_img, phase_real_txt, phase_real_c = next(training_set_iterator)
+                phase_real_txt  = training_set.tokenizer.batch_encode(phase_real_txt)
+                phase_real_txt = phase_real_txt.to(device).split(batch_gpu)
+            else:
+                phase_real_img, phase_real_c = next(training_set_iterator)
+                phase_real_txt = [None] * len(phases)
             phase_real_img = (phase_real_img.to(device).to(torch.float32) / 127.5 - 1).split(batch_gpu)
             phase_real_c = phase_real_c.to(device).split(batch_gpu)
             all_gen_z = torch.randn([len(phases) * batch_size, G.z_dim], device=device)
@@ -278,10 +285,10 @@ def training_loop(
             phase.module.requires_grad_(True)
 
             # Accumulate gradients over multiple rounds.
-            for round_idx, (real_img, real_c, gen_z, gen_c) in enumerate(zip(phase_real_img, phase_real_c, phase_gen_z, phase_gen_c)):
+            for round_idx, (real_img, real_c, gen_z, gen_c) in enumerate(zip(phase_real_img, phase_real_c, phase_gen_z, phase_gen_c, phase_real_txt)):
                 sync = (round_idx == batch_size // (batch_gpu * num_gpus) - 1)
                 gain = phase.interval
-                loss.accumulate_gradients(phase=phase.name, real_img=real_img, real_c=real_c, gen_z=gen_z, gen_c=gen_c, sync=sync, gain=gain)
+                loss.accumulate_gradients(phase=phase.name, real_img=real_img, real_c=real_c, gen_z=gen_z, gen_c=gen_c, sync=sync, gain=gain, real_txt=phase_real_txt)
 
             # Update weights.
             phase.module.requires_grad_(False)

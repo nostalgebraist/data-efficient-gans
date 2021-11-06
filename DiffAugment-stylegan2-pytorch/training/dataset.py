@@ -14,6 +14,8 @@ import json
 import torch
 import dnnlib
 
+import tokenizers
+
 try:
     import pyspng
 except ImportError:
@@ -161,6 +163,8 @@ class ImageFolderDataset(Dataset):
         path,                   # Path to directory or zip.
         resolution      = None, # Ensure specific resolution, None = highest available.
         use_text        = False,
+        tokenizer_path  = "tokenizer_file",
+        max_seq_len     = 130,
         **super_kwargs,         # Additional arguments for the Dataset base class.
     ):
         self._path = dnnlib.util.open_url(path, return_filename=True)
@@ -182,6 +186,7 @@ class ImageFolderDataset(Dataset):
             raise IOError('No image files found in the specified path')
 
         self._image_fname_to_text_fname = None
+        self.tokenizer = None
         if self.use_text:
             self._image_fname_to_text_fname = {}
             matchable_image_fnames = [fname for fname in self._image_fnames
@@ -190,6 +195,10 @@ class ImageFolderDataset(Dataset):
             self._image_fnames = matchable_image_fnames
 
             self._image_fname_to_text_fname = {fname: self._file_stem(fname) + '.txt' for fname in self._image_fnames}
+
+            self.tokenizer = tokenizers.Tokenizer.from_file(tokenizer_path)
+            self.tokenizer.enable_truncatation(max_seq_len)
+            self.tokenizer.enable_padding()
 
         name = os.path.splitext(os.path.basename(self._path))[0]
         raw_shape = [len(self._image_fnames)] + list(self._load_raw_image(0, image_only=True).shape)
