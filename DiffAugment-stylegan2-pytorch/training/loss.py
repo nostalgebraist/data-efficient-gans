@@ -55,6 +55,8 @@ class StyleGAN2Loss(Loss):
             img = DiffAugment(img, policy=self.diffaugment)
         if self.augment_pipe is not None:
             img = self.augment_pipe(img)
+        if txt is not None:
+            print(txt.shape)
         with misc.ddp_sync(self.D, sync):
             logits = self.D(img, c, txt)
         return logits
