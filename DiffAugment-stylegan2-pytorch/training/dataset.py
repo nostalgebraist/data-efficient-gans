@@ -83,13 +83,18 @@ class Dataset(torch.utils.data.Dataset):
         return self._raw_idx.size
 
     def __getitem__(self, idx):
+        text = None
         image = self._load_raw_image(self._raw_idx[idx])
+        if isinstance(image, tuple):
+            image, text = image
         assert isinstance(image, np.ndarray)
         assert list(image.shape) == self.image_shape
         assert image.dtype == np.uint8
         if self._xflip[idx]:
             assert image.ndim == 3 # CHW
             image = image[:, :, ::-1]
+        if text is not None:
+            return image.copy(), text, self.get_label(idx)
         return image.copy(), self.get_label(idx)
 
     def get_label(self, idx):
@@ -155,10 +160,12 @@ class ImageFolderDataset(Dataset):
     def __init__(self,
         path,                   # Path to directory or zip.
         resolution      = None, # Ensure specific resolution, None = highest available.
+        use_text        = False,
         **super_kwargs,         # Additional arguments for the Dataset base class.
     ):
         self._path = dnnlib.util.open_url(path, return_filename=True)
         self._zipfile = None
+        self.use_text = use_text
 
         if os.path.isdir(self._path):
             self._type = 'dir'
@@ -168,14 +175,24 @@ class ImageFolderDataset(Dataset):
             self._all_fnames = set(self._get_zipfile().namelist())
         else:
             raise IOError('Path must point to a directory or zip')
-
         PIL.Image.init()
         self._image_fnames = sorted(fname for fname in self._all_fnames if self._file_ext(fname) in PIL.Image.EXTENSION)
+        print(f"found {len(self._image_fnames)} images")
         if len(self._image_fnames) == 0:
             raise IOError('No image files found in the specified path')
 
+        self._image_fname_to_text_fname = None
+        if self.use_text:
+            self._image_fname_to_text_fname = {}
+            matchable_image_fnames = [fname for fname in self._image_fnames
+                                      if self._file_stem(fname) + '.txt' in self._all_fnames]
+            print(f"found {len(matchable_image_fnames)} matching text files")
+            self._image_fnames = matchable_image_fnames
+
+            self._image_fname_to_text_fname = {fname: self._file_stem(fname) + '.txt' for fname in self._image_fnames}
+
         name = os.path.splitext(os.path.basename(self._path))[0]
-        raw_shape = [len(self._image_fnames)] + list(self._load_raw_image(0).shape)
+        raw_shape = [len(self._image_fnames)] + list(self._load_raw_image(0, image_only=True).shape)
         if resolution is not None and (raw_shape[2] != resolution or raw_shape[3] != resolution):
             raise IOError('Image files do not match the specified resolution')
         super().__init__(name=name, raw_shape=raw_shape, **super_kwargs)
@@ -183,6 +200,10 @@ class ImageFolderDataset(Dataset):
     @staticmethod
     def _file_ext(fname):
         return os.path.splitext(fname)[1].lower()
+
+    @staticmethod
+    def _file_stem(fname):
+        return os.path.splitext(fname)[0]
 
     def _get_zipfile(self):
         assert self._type == 'zip'
@@ -207,7 +228,7 @@ class ImageFolderDataset(Dataset):
     def __getstate__(self):
         return dict(super().__getstate__(), _zipfile=None)
 
-    def _load_raw_image(self, raw_idx):
+    def _load_raw_image(self, raw_idx, image_only=False):
         fname = self._image_fnames[raw_idx]
         with self._open_file(fname) as f:
             if pyspng is not None and self._file_ext(fname) == '.png':
@@ -217,6 +238,13 @@ class ImageFolderDataset(Dataset):
         if image.ndim == 2:
             image = image[:, :, np.newaxis] # HW => HWC
         image = image.transpose(2, 0, 1) # HWC => CHW
+
+        if (not image_only) and self._image_fname_to_text_fname is not None:
+            text_fname = self._image_fname_to_text_fname[fname]
+            with open(os.path.join(self._path, text_fname), 'r') as f:
+                text = f.read()
+            return image, text
+
         return image
 
     def _load_raw_labels(self):

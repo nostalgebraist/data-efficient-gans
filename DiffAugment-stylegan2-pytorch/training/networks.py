@@ -478,6 +478,45 @@ class SynthesisNetwork(torch.nn.Module):
 
 #----------------------------------------------------------------------------
 
+import tokenizers
+from x_transformers import TransformerWrapper, Encoder
+
+
+@persistence.persistent_class
+class TextEncoder(torch.nn.Module):
+    def __init__(self,
+        w_dim,                      # Intermediate latent (W) dimensionality.
+        depth = 4,
+        head_dim = 128,
+        max_seq_len = 130,
+        rotary_pos_emb = True,
+        ff_glu = True,
+        tokenizer_path = 'tokenizer_file',
+    ):
+        assert w_dim % head_dim == 0
+        n_heads = w_dim // head_dim
+
+        self.tokenizer = tokenizers.Tokenizer.from_file(tokenizer_path)
+        self.tokenizer.enable_truncatation(max_seq_len)
+        self.tokenizer.enable_padding()
+
+        self.model = TransformerWrapper(
+            num_tokens = self.tokenizer.get_vocab_size(),
+            max_seq_len = max_seq_len,
+            attn_layers = Encoder(
+                dim = w_dim,
+                depth = depth,
+                heads = n_heads,
+                rotary_pos_emb = rotary_pos_emb,
+                ff_glu = ff_glu
+            )
+        )
+
+    
+
+
+#----------------------------------------------------------------------------
+
 @persistence.persistent_class
 class Generator(torch.nn.Module):
     def __init__(self,
@@ -488,6 +527,8 @@ class Generator(torch.nn.Module):
         img_channels,               # Number of output color channels.
         mapping_kwargs      = {},   # Arguments for MappingNetwork.
         synthesis_kwargs    = {},   # Arguments for SynthesisNetwork.
+        use_text_encoder    = False,
+        text_kwargs         = {}
     ):
         super().__init__()
         self.z_dim = z_dim
@@ -498,6 +539,7 @@ class Generator(torch.nn.Module):
         self.synthesis = SynthesisNetwork(w_dim=w_dim, img_resolution=img_resolution, img_channels=img_channels, **synthesis_kwargs)
         self.num_ws = self.synthesis.num_ws
         self.mapping = MappingNetwork(z_dim=z_dim, c_dim=c_dim, w_dim=w_dim, num_ws=self.num_ws, **mapping_kwargs)
+        self.use_text_encoder = None if not use_text_encoder else TextEncoder(w_dim=w_dim, **text_kwargs)
 
     def forward(self, z, c, truncation_psi=1, truncation_cutoff=None, **synthesis_kwargs):
         ws = self.mapping(z, c, truncation_psi=truncation_psi, truncation_cutoff=truncation_cutoff)
