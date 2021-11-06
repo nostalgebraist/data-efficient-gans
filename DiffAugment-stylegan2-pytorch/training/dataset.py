@@ -96,7 +96,7 @@ class Dataset(torch.utils.data.Dataset):
             assert image.ndim == 3 # CHW
             image = image[:, :, ::-1]
         if text is not None:
-            return image.copy(), text, self.get_label(idx)
+            return image.copy(), self.get_label(idx), text
         return image.copy(), self.get_label(idx)
 
     def get_label(self, idx):
