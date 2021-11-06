@@ -184,7 +184,7 @@ class MappingNetwork(torch.nn.Module):
         lr_multiplier   = 0.01,     # Learning rate multiplier for the mapping layers.
         w_avg_beta      = 0.995,    # Decay for tracking the moving average of W during training, None = do not track.
         use_text_encoder= False,
-        text_kwargs     = {}
+        text_kwargs     = {},
         use_encoder_decoder=False
     ):
         super().__init__()
