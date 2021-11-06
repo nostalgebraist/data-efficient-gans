@@ -262,10 +262,10 @@ def training_loop(
         with torch.autograd.profiler.record_function('data_fetch'):
             b = next(training_set_iterator)
             if len(b) == 3:
-                phase_real_img, phase_real_txt, phase_real_c = next(training_set_iterator)
+                phase_real_img, phase_real_c, phase_real_txt = b
                 phase_real_txt  = training_set.tokenize(phase_real_txt).to(device).split(batch_gpu)
             else:
-                phase_real_img, phase_real_c = next(training_set_iterator)
+                phase_real_img, phase_real_c = b
                 phase_real_txt = [None] * len(phases)
             phase_real_img = (phase_real_img.to(device).to(torch.float32) / 127.5 - 1).split(batch_gpu)
             phase_real_c = phase_real_c.to(device).split(batch_gpu)
