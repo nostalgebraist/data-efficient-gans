@@ -270,4 +270,7 @@ class ImageFolderDataset(Dataset):
         labels = labels.astype({1: np.int64, 2: np.float32}[labels.ndim])
         return labels
 
+    def tokenize(txt):
+        return [t.ids for t in self.tokenizer.encode_batch(txt)]
+
 #----------------------------------------------------------------------------

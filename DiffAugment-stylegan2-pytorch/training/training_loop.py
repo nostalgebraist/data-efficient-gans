@@ -224,6 +224,8 @@ def training_loop(
         grid_z = torch.randn([labels.shape[0], G.z_dim], device=device).split(batch_gpu)
         grid_c = torch.from_numpy(labels).to(device).split(batch_gpu)
         grid_txt = txts
+        if grid_txt is not None:
+            grid_txt = torch.as_tensor(training_set.tokenize(grid_txt)).to(device).split(batch_gpu)
         images = torch.cat([G_ema(z=z, c=c, txt=txt, noise_mode='const').cpu() for z, c, txt in zip(grid_z, grid_c, grid_txt)]).numpy()
         save_image_grid(images, os.path.join(run_dir, 'fakes_init.png'), drange=[-1,1], grid_size=grid_size)
 
@@ -261,8 +263,7 @@ def training_loop(
             b = next(training_set_iterator)
             if len(b) == 3:
                 phase_real_img, phase_real_txt, phase_real_c = next(training_set_iterator)
-                phase_real_txt  = training_set.tokenizer.batch_encode(phase_real_txt)
-                phase_real_txt = phase_real_txt.to(device).split(batch_gpu)
+                phase_real_txt  = training_set.tokenizer.tokenize(phase_real_txt).to(device).split(batch_gpu)
             else:
                 phase_real_img, phase_real_c = next(training_set_iterator)
                 phase_real_txt = [None] * len(phases)
