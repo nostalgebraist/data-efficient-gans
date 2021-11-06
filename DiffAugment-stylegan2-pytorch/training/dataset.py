@@ -197,7 +197,7 @@ class ImageFolderDataset(Dataset):
             self._image_fname_to_text_fname = {fname: self._file_stem(fname) + '.txt' for fname in self._image_fnames}
 
             self.tokenizer = tokenizers.Tokenizer.from_file(tokenizer_path)
-            self.tokenizer.enable_truncatation(max_seq_len)
+            self.tokenizer.enable_truncation(max_seq_len)
             self.tokenizer.enable_padding()
 
         name = os.path.splitext(os.path.basename(self._path))[0]
