@@ -263,7 +263,7 @@ def training_loop(
             b = next(training_set_iterator)
             if len(b) == 3:
                 phase_real_img, phase_real_c, phase_real_txt = b
-                phase_real_txt  = training_set.tokenize(phase_real_txt).to(device).split(batch_gpu)
+                phase_real_txt  = torch.as_tensor(training_set.tokenize(phase_real_txt)).to(device).split(batch_gpu)
             else:
                 phase_real_img, phase_real_c = b
                 phase_real_txt = [None] * len(phases)
