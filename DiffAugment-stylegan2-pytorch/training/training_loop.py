@@ -164,8 +164,6 @@ def training_loop(
         z = torch.empty([batch_gpu, G.z_dim], device=device)
         c = torch.empty([batch_gpu, G.c_dim], device=device)
         txt = torch.empty([batch_gpu, 2], device=device, dtype=torch.int)
-        print('training_loop txt')
-        print(txt)
         img = misc.print_module_summary(G, [z, c, txt])
         misc.print_module_summary(D, [img, c, txt])
 

@@ -39,9 +39,6 @@ class StyleGAN2Loss(Loss):
         self.pl_mean = torch.zeros([], device=device)
 
     def run_G(self, z, c, txt, sync):
-        if txt is not None:
-            print('run_G')
-            print(txt.shape)
         with misc.ddp_sync(self.G_mapping, sync):
             ws = self.G_mapping(z, c, txt)
             if self.style_mixing_prob > 0:
@@ -58,9 +55,6 @@ class StyleGAN2Loss(Loss):
             img = DiffAugment(img, policy=self.diffaugment)
         if self.augment_pipe is not None:
             img = self.augment_pipe(img)
-        if txt is not None:
-            print('run_D')
-            print(txt.shape)
         with misc.ddp_sync(self.D, sync):
             logits = self.D(img, c, txt)
         return logits
