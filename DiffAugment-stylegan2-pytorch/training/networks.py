@@ -515,8 +515,13 @@ class TextEncoder(torch.nn.Module):
         encoder_kwargs = {}
     ):
         super().__init__()
+
+        if inner_dim is None:
+            inner_dim = w_dim
+
         assert inner_dim % head_dim == 0
         n_heads = inner_dim // head_dim
+
 
         self.use_encoder_decoder = use_encoder_decoder
 

@@ -61,6 +61,7 @@ def setup_training_loop_kwargs(
     ramp_override    = None,
     bf16             = None,
     text             = None,
+    text_dim         = None,
 
     # Discriminator augmentation.
     diffaugment= None, # Comma-separated list of DiffAugment policy, default = 'color,translation,cutout'
@@ -232,6 +233,12 @@ def setup_training_loop_kwargs(
     if text:
         args.G_kwargs.mapping_kwargs.use_text_encoder = True
         args.D_kwargs.use_text_encoder = True
+
+        if not text_dim:
+            text_dim = latent_size
+
+        args.G_kwargs.mapping_kwargs.text_kwargs.inner_dim = text_dim
+        args.D_kwargs.mapping_kwargs.text_kwargs.inner_dim = text_dim
 
     if disable_lazy_reg:
         args.G_reg_interval = None
@@ -506,6 +513,7 @@ class CommaSeparatedList(click.ParamType):
 @click.option('--ramp-override', type=float)
 @click.option('--bf16', type=bool)
 @click.option('--text', type=bool)
+@click.option('--text-dim', type=int)
 
 # Discriminator augmentation.
 @click.option('--DiffAugment', help='Comma-separated list of DiffAugment policy [default: color,translation,cutout]', type=str)
