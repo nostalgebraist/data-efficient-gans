@@ -501,6 +501,7 @@ class TextEncoder(torch.nn.Module):
         rotary_pos_emb = True,
         ff_glu = True,
     ):
+        super().__init__()
         assert w_dim % head_dim == 0
         n_heads = w_dim // head_dim
 
