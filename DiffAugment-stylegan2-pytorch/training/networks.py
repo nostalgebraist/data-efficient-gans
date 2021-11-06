@@ -521,7 +521,7 @@ class TextEncoder(torch.nn.Module):
         )
 
     def forward(self, tokens):
-        return self.model(tokens, return_embeddings=True)
+        return self.model(tokens, return_embeddings=True)[:, 0, :]
 
 
 #----------------------------------------------------------------------------
