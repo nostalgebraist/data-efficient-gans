@@ -219,6 +219,7 @@ class MappingNetwork(torch.nn.Module):
             self.register_buffer('w_avg', torch.zeros([w_dim]))
 
     def forward(self, z, c, txt=None, truncation_psi=1, truncation_cutoff=None, skip_w_avg_update=False):
+        print('map forward')
         # Embed, normalize, and concat inputs.
         x = None
         with torch.autograd.profiler.record_function('input'):
@@ -243,6 +244,7 @@ class MappingNetwork(torch.nn.Module):
 
         if txt is not None:
             # TODO: do this after truncate
+            print('map forward txt')
             print(txt.shape)
             ws_txt = self.text_encoder(txt)
             x = x + ws_txt if x is not None else ws_txt
