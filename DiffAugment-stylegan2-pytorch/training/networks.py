@@ -194,7 +194,10 @@ class MappingNetwork(torch.nn.Module):
         self.num_layers = num_layers
         self.w_avg_beta = w_avg_beta
 
-        self.text_encoder = None if not use_text_encoder else TextEncoder(w_dim=w_dim, **text_kwargs)
+        if use_text_encoder:
+            self.text_encoder = TextEncoder(w_dim=w_dim, **text_kwargs)
+        else:
+            self.text_encoder = None
 
         if embed_features is None:
             embed_features = w_dim
