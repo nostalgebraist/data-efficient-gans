@@ -497,7 +497,7 @@ from x_transformers import TransformerWrapper, Encoder
 class TextEncoder(torch.nn.Module):
     def __init__(self,
         w_dim,                      # Intermediate latent (W) dimensionality.
-        depth = 4,
+        depth = 2,
         head_dim = 128,
         num_tokens = 2500,
         max_seq_len = 130,
