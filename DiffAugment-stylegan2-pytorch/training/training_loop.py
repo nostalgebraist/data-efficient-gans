@@ -285,10 +285,10 @@ def training_loop(
             phase.module.requires_grad_(True)
 
             # Accumulate gradients over multiple rounds.
-            for round_idx, (real_img, real_c, gen_z, gen_c) in enumerate(zip(phase_real_img, phase_real_c, phase_gen_z, phase_gen_c, phase_real_txt)):
+            for round_idx, (real_img, real_c, gen_z, gen_c, real_txt) in enumerate(zip(phase_real_img, phase_real_c, phase_gen_z, phase_gen_c, phase_real_txt)):
                 sync = (round_idx == batch_size // (batch_gpu * num_gpus) - 1)
                 gain = phase.interval
-                loss.accumulate_gradients(phase=phase.name, real_img=real_img, real_c=real_c, gen_z=gen_z, gen_c=gen_c, sync=sync, gain=gain, real_txt=phase_real_txt)
+                loss.accumulate_gradients(phase=phase.name, real_img=real_img, real_c=real_c, gen_z=gen_z, gen_c=gen_c, sync=sync, gain=gain, real_txt=real_txt)
 
             # Update weights.
             phase.module.requires_grad_(False)
