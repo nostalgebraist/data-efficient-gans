@@ -185,6 +185,7 @@ class MappingNetwork(torch.nn.Module):
         w_avg_beta      = 0.995,    # Decay for tracking the moving average of W during training, None = do not track.
         use_text_encoder= False,
         text_kwargs     = {}
+        use_encoder_decoder=False
     ):
         super().__init__()
         self.z_dim = z_dim
@@ -194,8 +195,9 @@ class MappingNetwork(torch.nn.Module):
         self.num_layers = num_layers
         self.w_avg_beta = w_avg_beta
 
+        self.use_encoder_decoder = use_encoder_decoder
         if use_text_encoder:
-            self.text_encoder = TextEncoder(w_dim=w_dim, **text_kwargs)
+            self.text_encoder = TextEncoder(w_dim=w_dim, use_encoder_decoder=use_encoder_decoder, **text_kwargs)
         else:
             self.text_encoder = None
 
@@ -492,43 +494,53 @@ class SynthesisNetwork(torch.nn.Module):
 #----------------------------------------------------------------------------
 
 from x_transformers import TransformerWrapper, Encoder, XTransformer
+from einops import rearrange
 
 
 @persistence.persistent_class
 class TextEncoder(torch.nn.Module):
     def __init__(self,
-        w_dim,                      # Intermediate latent (W) dimensionality.
+        w_dim,                      # output dim
+        inner_dim = None,           # model dim (default = w_dim)
         depth = 2,
         head_dim = 128,
         num_tokens = 2500,
         max_seq_len = 130,
         rotary_pos_emb = True,
         ff_glu = True,
+        use_scalenorm = False,
+        use_rezero = True,
         use_encoder_decoder = False,
-        dec_num_tokens = 1024
+        decoder_sqrt_ntok = 32,
         encoder_kwargs = {}
     ):
         super().__init__()
-        assert w_dim % head_dim == 0
-        n_heads = w_dim // head_dim
+        assert inner_dim % head_dim == 0
+        n_heads = inner_dim // head_dim
 
         self.use_encoder_decoder = use_encoder_decoder
 
         if self.use_encoder_decoder:
             enc_kwargs = dict(
-                dim = w_dim,
+                dim = inner_dim,
                 depth = depth,
                 heads = n_heads,
                 rotary_pos_emb = rotary_pos_emb,
-                ff_glu = ff_glu
+                ff_glu = ff_glu,
+                use_scalenorm = use_scalenorm,
+                use_rezero = use_rezero,
             )
             enc_kwargs = {k: encoder_kwargs.get(k, v) for k, v in encoder_kwargs.items()}
             enc_kwargs = {'enc_' + k: v for k, v in encoder_kwargs.items()}
+
+            self.dec_max_seq_len = decoder_sqrt_ntok ** 2
+
             self.model = XTransformer(
                 enc_num_tokens = num_tokens,
-                dec_num_tokens = dec_num_tokens,
-                max_seq_len = max_seq_len,
-                dec_dim = w_dim,
+                dec_num_tokens = 1,
+                enc_max_seq_len = max_seq_len,
+                dec_max_seq_len = self.dec_max_seq_len,
+                dec_dim = inner_dim,
                 dec_depth = depth,
                 dec_heads = n_heads,
                 dec_rotary_pos_emb = rotary_pos_emb,
@@ -540,19 +552,27 @@ class TextEncoder(torch.nn.Module):
                 num_tokens = num_tokens,
                 max_seq_len = max_seq_len,
                 attn_layers = Encoder(
-                    dim = w_dim,
+                    dim = inner_dim,
                     depth = depth,
                     heads = n_heads,
                     rotary_pos_emb = rotary_pos_emb,
-                    ff_glu = ff_glu
+                    ff_glu = ff_glu,
+                    use_scalenorm = use_scalenorm,
+                    use_rezero = use_rezero,
                 )
             )
+        self.proj = torch.nn.Linear(inner_dim, w_dim)
 
     def forward(self, tokens):
         if self.use_encoder_decoder:
-            raise NotImplementedError
+            tgt = torch.zeros((tokens.shape[0], self.dec_max_seq_len), device=tokens.device, dtype=torch.int)
+            enc = self.model.encoder(tokens, return_embeddings = True)
+            out = self.model.decoder(tgt, context=enc, return_embeddings=True)
+            out = rearrange(out, 'b (hw) c --> b h w c')
+            out = self.proj(out)
+            return out
         else:
-            return self.model(tokens, return_embeddings=True)[:, 0, :]
+            return self.proj(self.model(tokens, return_embeddings=True)[:, 0, :])
 
 
 #----------------------------------------------------------------------------
