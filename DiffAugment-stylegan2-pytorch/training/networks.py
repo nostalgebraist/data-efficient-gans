@@ -230,20 +230,21 @@ class MappingNetwork(torch.nn.Module):
                 y = normalize_2nd_moment(self.embed(c.to(torch.float32)))
                 x = torch.cat([x, y], dim=1) if x is not None else y
 
-        # Main layers.
-        for idx in range(self.num_layers):
-            layer = getattr(self, f'fc{idx}')
-            x = layer(x)
+        if x is not None:
+            # Main layers.
+            for idx in range(self.num_layers):
+                layer = getattr(self, f'fc{idx}')
+                x = layer(x)
 
-        # Update moving average of W.
-        if self.w_avg_beta is not None and self.training and not skip_w_avg_update:
-            with torch.autograd.profiler.record_function('update_w_avg'):
-                self.w_avg.copy_(x.detach().mean(dim=0).lerp(self.w_avg, self.w_avg_beta))
+            # Update moving average of W.
+            if self.w_avg_beta is not None and self.training and not skip_w_avg_update:
+                with torch.autograd.profiler.record_function('update_w_avg'):
+                    self.w_avg.copy_(x.detach().mean(dim=0).lerp(self.w_avg, self.w_avg_beta))
 
         if txt is not None:
             # TODO: do this after truncate
             ws_txt = self.text_encoder(txt)
-            x = x + ws_txt
+            x = x + ws_txt if x is not None else ws_txt
 
         # Broadcast.
         if self.num_ws is not None:
