@@ -263,7 +263,7 @@ def training_loop(
             b = next(training_set_iterator)
             if len(b) == 3:
                 phase_real_img, phase_real_txt, phase_real_c = next(training_set_iterator)
-                phase_real_txt  = training_set.tokenizer.tokenize(phase_real_txt).to(device).split(batch_gpu)
+                phase_real_txt  = training_set.tokenize(phase_real_txt).to(device).split(batch_gpu)
             else:
                 phase_real_img, phase_real_c = next(training_set_iterator)
                 phase_real_txt = [None] * len(phases)
