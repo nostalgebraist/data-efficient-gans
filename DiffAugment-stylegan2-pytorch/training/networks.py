@@ -496,6 +496,7 @@ class TextEncoder(torch.nn.Module):
         w_dim,                      # Intermediate latent (W) dimensionality.
         depth = 4,
         head_dim = 128,
+        num_tokens = 2500,
         max_seq_len = 130,
         rotary_pos_emb = True,
         ff_glu = True,
@@ -504,7 +505,7 @@ class TextEncoder(torch.nn.Module):
         n_heads = w_dim // head_dim
 
         self.model = TransformerWrapper(
-            num_tokens = self.tokenizer.get_vocab_size(),
+            num_tokens = num_tokens,
             max_seq_len = max_seq_len,
             attn_layers = Encoder(
                 dim = w_dim,
