@@ -231,6 +231,7 @@ def setup_training_loop_kwargs(
 
     if text:
         args.G_kwargs.mapping_kwargs.use_text_encoder = True
+        args.G_kwargs.use_text_encoder = True
 
     if disable_lazy_reg:
         args.G_reg_interval = None

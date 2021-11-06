@@ -745,6 +745,8 @@ class Discriminator(torch.nn.Module):
         block_kwargs        = {},       # Arguments for DiscriminatorBlock.
         mapping_kwargs      = {},       # Arguments for MappingNetwork.
         epilogue_kwargs     = {},       # Arguments for DiscriminatorEpilogue.
+        use_text_encoder    = False,
+        text_kwargs         = {}
     ):
         super().__init__()
         self.c_dim = c_dim
@@ -771,19 +773,21 @@ class Discriminator(torch.nn.Module):
                 first_layer_idx=cur_layer_idx, use_fp16=use_fp16, use_bf16=use_bf16, **block_kwargs, **common_kwargs)
             setattr(self, f'b{res}', block)
             cur_layer_idx += block.num_layers
-        if c_dim > 0:
-            self.mapping = MappingNetwork(z_dim=0, c_dim=c_dim, w_dim=cmap_dim, num_ws=None, w_avg_beta=None, **mapping_kwargs)
+        if c_dim > 0 or use_text_encoder:
+            self.mapping = MappingNetwork(z_dim=0, c_dim=c_dim, w_dim=cmap_dim, num_ws=None, w_avg_beta=None, use_text_encoder=use_text_encoder, **mapping_kwargs)
+        else:
+            self.mapping = None
         self.b4 = DiscriminatorEpilogue(channels_dict[4], cmap_dim=cmap_dim, resolution=4, **epilogue_kwargs, **common_kwargs)
 
-    def forward(self, img, c, **block_kwargs):
+    def forward(self, img, c, txt, **block_kwargs):
         x = None
         for res in self.block_resolutions:
             block = getattr(self, f'b{res}')
             x, img = block(x, img, **block_kwargs)
 
         cmap = None
-        if self.c_dim > 0:
-            cmap = self.mapping(None, c)
+        if self.mapping is not None:
+            cmap = self.mapping(None, c, txt)
         x = self.b4(x, img, cmap)
         return x
 
