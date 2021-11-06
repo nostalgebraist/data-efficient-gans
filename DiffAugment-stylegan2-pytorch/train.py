@@ -60,6 +60,7 @@ def setup_training_loop_kwargs(
     ema_override     = None,
     ramp_override    = None,
     bf16             = None,
+    text             = None,
 
     # Discriminator augmentation.
     diffaugment= None, # Comma-separated list of DiffAugment policy, default = 'color,translation,cutout'
@@ -156,6 +157,10 @@ def setup_training_loop_kwargs(
         desc += '-mirror'
         args.training_set_kwargs.xflip = True
 
+    if text:
+        args.training_set_kwargs.use_text = True
+
+
     # ------------------------------------
     # Base config: cfg, gamma, kimg, batch
     # ------------------------------------
@@ -223,6 +228,9 @@ def setup_training_loop_kwargs(
     args.G_kwargs.synthesis_kwargs.num_fp16_res = args.D_kwargs.num_fp16_res = 4 # enable mixed-precision training
     args.G_kwargs.synthesis_kwargs.conv_clamp = args.D_kwargs.conv_clamp = 256 # clamp activations to avoid float16 overflow
     args.D_kwargs.epilogue_kwargs.mbstd_group_size = spec.mbstd
+
+    if text:
+        args.G_kwargs.mapping_kwargs.use_text_encoder = True
 
     if disable_lazy_reg:
         args.G_reg_interval = None
@@ -496,6 +504,7 @@ class CommaSeparatedList(click.ParamType):
 @click.option('--ema-override', type=int)
 @click.option('--ramp-override', type=float)
 @click.option('--bf16', type=bool)
+@click.option('--text', type=bool)
 
 # Discriminator augmentation.
 @click.option('--DiffAugment', help='Comma-separated list of DiffAugment policy [default: color,translation,cutout]', type=str)

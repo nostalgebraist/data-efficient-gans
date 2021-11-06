@@ -530,7 +530,6 @@ class Generator(torch.nn.Module):
         img_channels,               # Number of output color channels.
         mapping_kwargs      = {},   # Arguments for MappingNetwork.
         synthesis_kwargs    = {},   # Arguments for SynthesisNetwork.
-        use_text_encoder    = False,
         text_kwargs         = {}
     ):
         super().__init__()
@@ -542,7 +541,6 @@ class Generator(torch.nn.Module):
         self.synthesis = SynthesisNetwork(w_dim=w_dim, img_resolution=img_resolution, img_channels=img_channels, **synthesis_kwargs)
         self.num_ws = self.synthesis.num_ws
         self.mapping = MappingNetwork(z_dim=z_dim, c_dim=c_dim, w_dim=w_dim, num_ws=self.num_ws,
-                                      use_text_encoder=use_text_encoder,
                                       **mapping_kwargs)
 
     def forward(self, z, c, txt=None, truncation_psi=1, truncation_cutoff=None, **synthesis_kwargs):
