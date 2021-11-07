@@ -819,6 +819,8 @@ class DiscriminatorBlock(torch.nn.Module):
                 w = w.transpose(1, 3)
                 w_resampled = self.txt_resample(w)
                 print(w_resampled.shape)
+                w_resampled = w_resampled.transpose(1, 3)
+                print(w_resampled.shape)
                 w_gates = self.txt_gate(w_resampled)
                 x_gated = self.txt_gated_conv(x)
                 print(w_gates.shape)
