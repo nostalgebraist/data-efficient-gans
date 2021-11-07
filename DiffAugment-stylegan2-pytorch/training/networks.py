@@ -594,8 +594,8 @@ class TextEncoder(torch.nn.Module):
                 use_scalenorm = use_scalenorm,
                 use_rezero = use_rezero,
             )
-            enc_kwargs = {k: encoder_kwargs.get(k, v) for k, v in encoder_kwargs.items()}
-            enc_kwargs = {'enc_' + k: v for k, v in encoder_kwargs.items()}
+            enc_kwargs = {k: encoder_kwargs.get(k, v) for k, v in enc_kwargs.items()}
+            enc_kwargs = {'enc_' + k: v for k, v in enc_kwargs.items()}
 
             self.dec_max_seq_len = decoder_sqrt_ntok ** 2
 
