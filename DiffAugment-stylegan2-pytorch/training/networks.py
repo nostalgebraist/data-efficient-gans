@@ -444,7 +444,7 @@ class SynthesisBlock(torch.nn.Module):
         if self.in_channels == 0:
             if self.use_encoder_decoder:
                 ws_txt = ws_txt.to(dtype=dtype, memory_format=memory_format)
-                ws_txt = ws_txt.transpose((1, 3))
+                ws_txt = ws_txt.transpose(1, 3)
                 print(x.shape)
                 print(ws_txt.shape)
                 x += self.txt_conv(ws_txt)
