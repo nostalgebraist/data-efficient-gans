@@ -818,6 +818,7 @@ class DiscriminatorBlock(torch.nn.Module):
                 w = w.to(dtype=dtype, memory_format=memory_format)
                 print(w.shape)
                 print(self.txt_gate.weight.shape)
+                print(self.txt_gate.weight.dtype)
                 w_gates = self.txt_gate(w)
                 w_gates = torch.nn.functional.relu(w_gates)
                 w_gates = w_gates.transpose(1, 3)
