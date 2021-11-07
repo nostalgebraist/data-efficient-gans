@@ -504,7 +504,7 @@ class SynthesisNetwork(torch.nn.Module):
     def forward(self, ws, ws_txt, txt_gain=1., autocasting=False, **block_kwargs):
         block_ws = []
         with torch.autograd.profiler.record_function('split_ws'):
-            misc.assert_shape(ws, [None, self.num_ws, self.w_dim])
+            # misc.assert_shape(ws, [None, self.num_ws, self.w_dim])
             if not autocasting:
                 ws = ws.to(torch.float32)
                 if ws_txt is not None:
