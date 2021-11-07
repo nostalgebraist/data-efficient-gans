@@ -533,7 +533,13 @@ class SynthesisNetwork(torch.nn.Module):
             for res in self.block_resolutions:
                 block = getattr(self, f'b{res}')
                 block_w = ws.narrow(1, w_idx, block.num_conv + block.num_torgb)
-                block_w_txt = txt_gain * ws_txt.narrow(1, w_idx, block.num_conv + block.num_torgb)
+
+                if self.use_encoder_decoder:
+                    block_w_txt = txt_gain * ws_txt.narrow(1, w_idx, 1)
+                else:
+                    block_w_txt = txt_gain * ws_txt.narrow(1, w_idx, block.num_conv + block.num_torgb)
+
+
                 if self.use_encoder_decoder:
                     pass
                 elif self.text_concat:
