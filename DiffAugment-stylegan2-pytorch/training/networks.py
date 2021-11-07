@@ -827,7 +827,7 @@ class DiscriminatorBlock(torch.nn.Module):
                 x_gated = self.txt_gated_conv(x)
                 print(w_gates_resampled.shape)
                 print(x_gated.shape)
-                ws_txt_out = w_gates * w_gates_resampled
+                ws_txt_out = x_gated * w_gates_resampled
                 x = x + ws_txt_out
             elif self.use_ws:
                 x = self.conv0(x, w)
