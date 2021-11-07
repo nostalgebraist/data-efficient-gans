@@ -365,7 +365,7 @@ class SynthesisBlock(torch.nn.Module):
         fp16_channels_last  = False,        # Use channels-last memory format with FP16?
         use_bf16            = False,
         use_encoder_decoder = False,
-        w_txt_res           = 16,
+        w_txt_res           = 32,
         w_txt_dim           = 512,
         **layer_kwargs,                     # Arguments for SynthesisLayer.
     ):
@@ -412,7 +412,6 @@ class SynthesisBlock(torch.nn.Module):
         if self.use_encoder_decoder:
             down = max(1, w_txt_res // self.resolution)
             up   = max(1, self.resolution // w_txt_res)
-            print((up, down, w_txt_res, self.resolution))
             self.txt_gate = torch.nn.Linear(w_txt_dim, out_channels)
             self.txt_resample = Conv2dLayer(
                 w_txt_dim, w_txt_dim, kernel_size=3, bias=True,
@@ -708,7 +707,7 @@ class Generator(torch.nn.Module):
         synthesis_kwargs    = {},   # Arguments for SynthesisNetwork.
         text_concat         = False,
         use_encoder_decoder = False,
-        w_txt_res           = 16,
+        w_txt_res           = 32,
         w_txt_dim           = 512,
     ):
         super().__init__()
@@ -761,7 +760,7 @@ class DiscriminatorBlock(torch.nn.Module):
         use_ws              = False,
         w_dim               = 512,
         use_encoder_decoder = False,
-        w_txt_res           = 16,
+        w_txt_res           = 32,
 
     ):
         assert in_channels in [0, tmp_channels]
