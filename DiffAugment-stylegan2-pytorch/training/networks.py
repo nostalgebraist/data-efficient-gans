@@ -663,7 +663,6 @@ class DiscriminatorBlock(torch.nn.Module):
         if self.use_ws:
             self.conv0 = SynthesisLayer(tmp_channels, tmp_channels, w_dim=w_dim, resolution=resolution,
                                         kernel_size=3, activation=activation,
-                                        trainable=next(trainable_iter),
                                         conv_clamp=conv_clamp, channels_last=self.channels_last)
         else:
             self.conv0 = Conv2dLayer(tmp_channels, tmp_channels, kernel_size=3, activation=activation,
