@@ -299,7 +299,6 @@ class SynthesisLayer(torch.nn.Module):
         self.bias = torch.nn.Parameter(torch.zeros([out_channels]))
 
     def forward(self, x, w, noise_mode='random', fused_modconv=True, gain=1):
-        print(w.shape)
         assert noise_mode in ['random', 'const', 'none']
         in_resolution = self.resolution // self.up
         misc.assert_shape(x, [None, self.weight.shape[1], in_resolution, in_resolution])
@@ -873,7 +872,6 @@ class Discriminator(torch.nn.Module):
             block_ws = []
             with torch.autograd.profiler.record_function('split_ws'):
                 ws = ws.to(torch.float32)
-                print(ws.shape)
                 for w_idx, res in enumerate(self.block_resolutions):
                     block = getattr(self, f'b{res}')
                     block_ws.append(ws[:, w_idx, :])
