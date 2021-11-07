@@ -413,7 +413,7 @@ class SynthesisBlock(torch.nn.Module):
                 w_txt_dim, out_channels, kernel_size=3, bias=True,
                 up=up, down=down,
                 resample_filter=resample_filter, channels_last=self.channels_last,
-                activation=layer_kwargs.get('activation', 'lrelu')
+                activation='relu'
             )
 
     def forward(self, x, img, ws, ws_txt=None, force_fp32=False, fused_modconv=None, autocasting=False, **layer_kwargs):
@@ -776,7 +776,7 @@ class DiscriminatorBlock(torch.nn.Module):
                 w_dim, tmp_channels, kernel_size=3, bias=True,
                 up=up, down=down,
                 resample_filter=resample_filter, channels_last=self.channels_last,
-                activation=activation
+                activation='relu'
             )
 
 
