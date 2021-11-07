@@ -323,7 +323,7 @@ def training_loop(
             phase.opt.zero_grad(set_to_none=True)
             phase.module.requires_grad_(True)
 
-            txt_gain = min(1., min(1, cur_nimg) / max(1., 1000. * text_warmup_kimg))
+            txt_gain = min(1., max(1, cur_nimg) / max(1., 1000. * text_warmup_kimg))
 
             # Accumulate gradients over multiple rounds.
             for round_idx, (real_img, real_c, gen_z, gen_c, real_txt) in enumerate(zip(phase_real_img, phase_real_c, phase_gen_z, phase_gen_c, phase_real_txt)):
