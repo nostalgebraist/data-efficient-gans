@@ -62,6 +62,7 @@ def setup_training_loop_kwargs(
     bf16             = None,
     text             = None,
     text_dim         = None,
+    text_depth       = None,
     z_dim            = None,
 
     # Discriminator augmentation.
@@ -241,8 +242,14 @@ def setup_training_loop_kwargs(
         if not text_dim:
             text_dim = latent_size
 
+        if not text_depth:
+            text_depth = 2
+
         args.G_kwargs.mapping_kwargs.text_kwargs.inner_dim = text_dim
         args.D_kwargs.mapping_kwargs.text_kwargs.inner_dim = text_dim
+
+        args.G_kwargs.mapping_kwargs.text_kwargs.depth = text_depth
+        args.G_kwargs.mapping_kwargs.text_kwargs.depth = text_depth
 
         args.D_kwargs.cmap_dim = latent_size
 
@@ -520,6 +527,7 @@ class CommaSeparatedList(click.ParamType):
 @click.option('--bf16', type=bool)
 @click.option('--text', type=bool)
 @click.option('--text-dim', type=int)
+@click.option('--text-depth', type=int)
 @click.option('--z-dim', type=int)
 
 # Discriminator augmentation.
