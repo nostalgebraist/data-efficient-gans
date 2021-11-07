@@ -101,15 +101,16 @@ class StyleGAN2Loss(Loss):
 
         # Gmain: Maximize logits for generated images.
         if do_Gmain:
-            with torch.autograd.profiler.record_function('Gmain_forward'):
-                gen_img, _gen_ws, _gen_ws_txt = self.run_G(gen_z, gen_c, real_txt, sync=(sync and not do_Gpl), txt_gain=txt_gain) # May get synced by Gpl.
-                gen_logits = self.run_D(gen_img, gen_c, real_txt, sync=False, txt_gain=txt_gain)
-                training_stats.report('Loss/scores/fake', gen_logits)
-                training_stats.report('Loss/signs/fake', gen_logits.sign())
-                loss_Gmain = torch.nn.functional.softplus(-gen_logits) # -log(sigmoid(gen_logits))
-                training_stats.report('Loss/G/loss', loss_Gmain)
-            with torch.autograd.profiler.record_function('Gmain_backward'):
-                self.G_scaler.scale(loss_Gmain.mean().mul(gain)).backward()
+            with torch.autograd.detect_anomaly():
+                with torch.autograd.profiler.record_function('Gmain_forward'):
+                    gen_img, _gen_ws, _gen_ws_txt = self.run_G(gen_z, gen_c, real_txt, sync=(sync and not do_Gpl), txt_gain=txt_gain) # May get synced by Gpl.
+                    gen_logits = self.run_D(gen_img, gen_c, real_txt, sync=False, txt_gain=txt_gain)
+                    training_stats.report('Loss/scores/fake', gen_logits)
+                    training_stats.report('Loss/signs/fake', gen_logits.sign())
+                    loss_Gmain = torch.nn.functional.softplus(-gen_logits) # -log(sigmoid(gen_logits))
+                    training_stats.report('Loss/G/loss', loss_Gmain)
+                with torch.autograd.profiler.record_function('Gmain_backward'):
+                    self.G_scaler.scale(loss_Gmain.mean().mul(gain)).backward()
 
         # Gpl: Apply path length regularization.
         if do_Gpl:
