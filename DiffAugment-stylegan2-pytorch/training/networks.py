@@ -847,9 +847,10 @@ class Discriminator(torch.nn.Module):
             setattr(self, f'b{res}', block)
             cur_layer_idx += block.num_layers
 
+        self.use_ws = use_ws
         self.num_ws = None
         if c_dim > 0 or use_text_encoder:
-            if use_ws:
+            if self.use_ws:
                 self.num_ws = len(self.block_resolutions)
             self.mapping = MappingNetwork(
                 z_dim=0, c_dim=c_dim, w_dim=cmap_dim,
