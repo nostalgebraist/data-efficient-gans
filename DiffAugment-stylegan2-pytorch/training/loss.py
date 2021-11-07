@@ -56,9 +56,11 @@ class StyleGAN2Loss(Loss):
         self.pl_mean = torch.zeros([], device=device)
         self.use_amp = use_amp
 
-        self.scaler = FakeScaler()
+        self.G_scaler = FakeScaler()
+        self.D_scaler = FakeScaler()
         if self.use_amp:
-            self.scaler = torch.cuda.amp.GradScaler()
+            self.G_scaler = torch.cuda.amp.GradScaler()
+            self.D_scaler = torch.cuda.amp.GradScaler()
 
     def run_G(self, z, c, txt, sync):
         with torch.cuda.amp.autocast(enabled=self.use_amp):
@@ -100,7 +102,7 @@ class StyleGAN2Loss(Loss):
                 loss_Gmain = torch.nn.functional.softplus(-gen_logits) # -log(sigmoid(gen_logits))
                 training_stats.report('Loss/G/loss', loss_Gmain)
             with torch.autograd.profiler.record_function('Gmain_backward'):
-                self.scaler.scale(loss_Gmain.mean().mul(gain)).backward()
+                self.G_scaler.scale(loss_Gmain.mean().mul(gain)).backward()
 
         # Gpl: Apply path length regularization.
         if do_Gpl:
@@ -119,7 +121,7 @@ class StyleGAN2Loss(Loss):
                 loss_Gpl = pl_penalty * self.pl_weight
                 training_stats.report('Loss/G/reg', loss_Gpl)
             with torch.autograd.profiler.record_function('Gpl_backward'):
-                self.scaler.scale((gen_img[:, 0, 0, 0] * 0 + loss_Gpl).mean().mul(gain)).backward()
+                self.G_scaler.scale((gen_img[:, 0, 0, 0] * 0 + loss_Gpl).mean().mul(gain)).backward()
 
         # Dmain: Minimize logits for generated images.
         loss_Dgen = 0
@@ -131,7 +133,7 @@ class StyleGAN2Loss(Loss):
                 training_stats.report('Loss/signs/fake', gen_logits.sign())
                 loss_Dgen = torch.nn.functional.softplus(gen_logits) # -log(1 - sigmoid(gen_logits))
             with torch.autograd.profiler.record_function('Dgen_backward'):
-                self.scaler.scale(loss_Dgen.mean().mul(gain)).backward()
+                self.D_scaler.scale(loss_Dgen.mean().mul(gain)).backward()
 
         # Dmain: Maximize logits for real images.
         # Dr1: Apply R1 regularization.
@@ -158,6 +160,6 @@ class StyleGAN2Loss(Loss):
                     training_stats.report('Loss/D/reg', loss_Dr1)
 
             with torch.autograd.profiler.record_function(name + '_backward'):
-                self.scaler.scale((real_logits * 0 + loss_Dreal + loss_Dr1).mean().mul(gain)).backward()
+                self.D_scaler.scale((real_logits * 0 + loss_Dreal + loss_Dr1).mean().mul(gain)).backward()
 
 #----------------------------------------------------------------------------

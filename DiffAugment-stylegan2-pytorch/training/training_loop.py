@@ -196,18 +196,19 @@ def training_loop(
         print('Setting up training phases...')
     loss = dnnlib.util.construct_class_by_name(device=device, **ddp_modules, **loss_kwargs) # subclass of training.loss.Loss
     phases = []
-    for name, module, opt_kwargs, reg_interval in [('G', G, G_opt_kwargs, G_reg_interval), ('D', D, D_opt_kwargs, D_reg_interval)]:
+    for name, module, opt_kwargs, reg_interval, scaler in [('G', G, G_opt_kwargs, G_reg_interval, loss.G_scaler), ('D', D, D_opt_kwargs, D_reg_interval, loss.D_scaler)]:
         if reg_interval is None:
             opt = dnnlib.util.construct_class_by_name(params=module.parameters(), **opt_kwargs) # subclass of torch.optim.Optimizer
-            phases += [dnnlib.EasyDict(name=name+'both', module=module, opt=opt, interval=1)]
+            phases += [dnnlib.EasyDict(name=name+'both', module=module, opt=opt, interval=1, scaler=scaler)]
         else: # Lazy regularization.
             mb_ratio = reg_interval / (reg_interval + 1)
             opt_kwargs = dnnlib.EasyDict(opt_kwargs)
             opt_kwargs.lr = opt_kwargs.lr * mb_ratio
             opt_kwargs.betas = [beta ** mb_ratio for beta in opt_kwargs.betas]
             opt = dnnlib.util.construct_class_by_name(module.parameters(), **opt_kwargs) # subclass of torch.optim.Optimizer
-            phases += [dnnlib.EasyDict(name=name+'main', module=module, opt=opt, interval=1)]
-            phases += [dnnlib.EasyDict(name=name+'reg', module=module, opt=opt, interval=reg_interval)]
+            phases += [dnnlib.EasyDict(name=name+'main', module=module, opt=opt, interval=1, scaler=scaler)]
+            phases += [dnnlib.EasyDict(name=name+'reg', module=module, opt=opt, interval=reg_interval,
+                                       scaler=scaler)]
     for phase in phases:
         phase.start_event = None
         phase.end_event = None
@@ -300,8 +301,8 @@ def training_loop(
                 for param in phase.module.parameters():
                     if param.grad is not None:
                         misc.nan_to_num(param.grad, nan=0, posinf=1e5, neginf=-1e5, out=param.grad)
-                loss.scaler.step(phase.opt)
-                loss.scaler.update()
+                phase.scaler.step(phase.opt)
+                phase.scaler.update()
             if phase.end_event is not None:
                 phase.end_event.record(torch.cuda.current_stream(device))
 
