@@ -299,6 +299,7 @@ class SynthesisLayer(torch.nn.Module):
         self.bias = torch.nn.Parameter(torch.zeros([out_channels]))
 
     def forward(self, x, w, noise_mode='random', fused_modconv=True, gain=1):
+        print(w.shape)
         assert noise_mode in ['random', 'const', 'none']
         in_resolution = self.resolution // self.up
         misc.assert_shape(x, [None, self.weight.shape[1], in_resolution, in_resolution])
