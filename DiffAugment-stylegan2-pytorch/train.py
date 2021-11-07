@@ -274,7 +274,7 @@ def setup_training_loop_kwargs(
         if use_enc_dec:
             args.G_kwargs.use_encoder_decoder = True
             args.D_kwargs.use_encoder_decoder = True
-            args.G_kwargs.w_txt_dim = text_dim
+            args.G_kwargs.w_txt_dim = w_dim
 
         # TODO: was this a good/bad idea?
         # args.D_kwargs.cmap_dim = latent_size
