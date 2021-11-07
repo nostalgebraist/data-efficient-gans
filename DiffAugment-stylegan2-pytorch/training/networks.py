@@ -414,7 +414,7 @@ class SynthesisBlock(torch.nn.Module):
             up   = max(1, self.resolution // w_txt_res)
             self.txt_gate = torch.nn.Linear(w_txt_dim, out_channels)
             self.txt_resample = Conv2dLayer(
-                w_txt_dim, w_txt_dim, kernel_size=3, bias=True,
+                w_txt_dim, w_txt_dim, kernel_size=1, bias=True,
                 up=up, down=down,
                 resample_filter=resample_filter, channels_last=self.channels_last,
                 activation='linear'
