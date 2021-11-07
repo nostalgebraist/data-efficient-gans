@@ -912,6 +912,7 @@ class Discriminator(torch.nn.Module):
         epilogue_kwargs     = {},       # Arguments for DiscriminatorEpilogue.
         use_text_encoder    = False,
         use_ws              = False,
+        use_encoder_decoder = False
     ):
         super().__init__()
         self.c_dim = c_dim
@@ -942,6 +943,7 @@ class Discriminator(torch.nn.Module):
             cur_layer_idx += block.num_layers
 
         self.use_ws = use_ws
+        self.use_encoder_decoder = use_encoder_decoder
 
         self.num_ws = None
         if c_dim > 0 or use_text_encoder:
@@ -953,6 +955,7 @@ class Discriminator(torch.nn.Module):
                 num_ws=self.num_ws,
                 w_avg_beta=None,
                 use_text_encoder=use_text_encoder,
+                use_encoder_decoder=use_encoder_decoder,
                 **mapping_kwargs)
         else:
             self.mapping = None
@@ -969,7 +972,7 @@ class Discriminator(torch.nn.Module):
                 ws = ws.to(torch.float32)
                 for w_idx, res in enumerate(self.block_resolutions):
                     block = getattr(self, f'b{res}')
-                    block_w = txt_gain * ws[:, w_idx, :]
+                    block_w = txt_gain * ws[:, w_idx, ...]
                     block_ws.append(block_w)
         else:
             block_ws = [None for _ in self.block_resolutions]
