@@ -323,6 +323,7 @@ def training_loop(
             phase.opt.zero_grad(set_to_none=True)
             phase.module.requires_grad_(True)
 
+            print(("text_warmup_kimg", text_warmup_kimg))
             txt_gain = min(1., max(1, cur_nimg) / max(1., 1000. * text_warmup_kimg))
 
             # Accumulate gradients over multiple rounds.

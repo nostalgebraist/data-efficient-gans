@@ -72,6 +72,8 @@ def setup_training_loop_kwargs(
     text_momentum    = None,
     use_enc_dec      = None,
 
+    print(("text_warmup_kimg", text_warmup_kimg))
+
     # Discriminator augmentation.
     diffaugment= None, # Comma-separated list of DiffAugment policy, default = 'color,translation,cutout'
     aug        = None, # Augmentation mode: 'ada' (default), 'noaug', 'fixed'
