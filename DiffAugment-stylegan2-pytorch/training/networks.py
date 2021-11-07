@@ -854,14 +854,15 @@ class Discriminator(torch.nn.Module):
             if self.use_ws:
                 self.num_ws = len(self.block_resolutions)
             self.mapping = MappingNetwork(
-                z_dim=0, c_dim=c_dim, w_dim=cmap_dim,
+                z_dim=0, c_dim=c_dim,
+                w_dim=cmap_dim,
                 num_ws=self.num_ws,
                 w_avg_beta=None,
                 use_text_encoder=use_text_encoder,
                 **mapping_kwargs)
         else:
             self.mapping = None
-        self.b4 = DiscriminatorEpilogue(channels_dict[4], cmap_dim=cmap_dim, resolution=4, **epilogue_kwargs, **common_kwargs)
+        self.b4 = DiscriminatorEpilogue(channels_dict[4], cmap_dim=0 if self.use_ws else cmap_dim, resolution=4, **epilogue_kwargs, **common_kwargs)
 
     def forward(self, img, c, txt=None, **block_kwargs):
         x = None
