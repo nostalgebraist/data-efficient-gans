@@ -443,6 +443,8 @@ class SynthesisBlock(torch.nn.Module):
         # Main layers.
         if self.in_channels == 0:
             if self.use_encoder_decoder:
+                print(x.shape)
+                print(ws_txt.shape)
                 x += self.txt_conv(ws_txt)
             x = self.conv1(x, next(w_iter), fused_modconv=fused_modconv, **layer_kwargs)
         elif self.architecture == 'resnet':
