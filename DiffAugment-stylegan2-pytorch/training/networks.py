@@ -630,7 +630,8 @@ class Generator(torch.nn.Module):
         img_channels,               # Number of output color channels.
         mapping_kwargs      = {},   # Arguments for MappingNetwork.
         synthesis_kwargs    = {},   # Arguments for SynthesisNetwork.
-        text_kwargs         = {}
+        text_kwargs         = {},
+        text_concat         = False,
     ):
         super().__init__()
         self.z_dim = z_dim
@@ -641,12 +642,14 @@ class Generator(torch.nn.Module):
         self.synthesis = SynthesisNetwork(w_dim=w_dim, img_resolution=img_resolution, img_channels=img_channels, **synthesis_kwargs)
         self.num_ws = self.synthesis.num_ws
         self.mapping = MappingNetwork(z_dim=z_dim, c_dim=c_dim, w_dim=w_dim, num_ws=self.num_ws,
+                                      text_concat=text_concat,
                                       **mapping_kwargs)
 
     def forward(self, z, c, txt=None, txt_gain=1., autocasting=False, truncation_psi=1, truncation_cutoff=None, **synthesis_kwargs):
         ws, ws_txt = self.mapping(z, c, txt, truncation_psi=truncation_psi, truncation_cutoff=truncation_cutoff)
 
-        img = self.synthesis(ws, ws_txt, txt_gain=txt_gain, autocasting=autocasting, **synthesis_kwargs)
+        img = self.synthesis(ws, ws_txt, txt_gain=txt_gain, autocasting=autocasting,
+                             text_concat=text_concat, **synthesis_kwargs)
         return img
 
 #----------------------------------------------------------------------------
