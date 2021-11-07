@@ -667,7 +667,7 @@ class Generator(torch.nn.Module):
             text_concat=text_concat,
             use_encoder_decoder=use_encoder_decoder,
             w_txt_res=w_txt_res,
-            w_txt_dim=w_txt_dim
+            w_txt_dim=w_txt_dim,
             **synthesis_kwargs)
         self.num_ws = self.synthesis.num_ws
         self.text_concat = text_concat
