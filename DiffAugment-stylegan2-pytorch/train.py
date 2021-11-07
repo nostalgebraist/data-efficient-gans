@@ -251,7 +251,8 @@ def setup_training_loop_kwargs(
         args.G_kwargs.mapping_kwargs.text_kwargs.depth = text_depth
         args.D_kwargs.mapping_kwargs.text_kwargs.depth = text_depth
 
-        args.D_kwargs.cmap_dim = latent_size
+        # TODO: was this a good/bad idea?
+        # args.D_kwargs.cmap_dim = latent_size
 
     if disable_lazy_reg:
         args.G_reg_interval = None
