@@ -772,7 +772,8 @@ class DiscriminatorBlock(torch.nn.Module):
         if self.use_encoder_decoder:
             down = max(1, w_txt_res // self.resolution)
             up   = max(1, self.resolution // w_txt_res)
-            self.txt_gate = torch.nn.Linear(w_dim, tmp_channels, dtype=torch.float16)
+            self.txt_gate = torch.nn.Linear(w_dim, tmp_channels,
+                                            dtype=torch.float16 if self.use_fp16 else torch.float32)
             self.txt_resample = Conv2dLayer(
                 tmp_channels, tmp_channels, kernel_size=3, bias=True,
                 up=up, down=down,
@@ -818,7 +819,7 @@ class DiscriminatorBlock(torch.nn.Module):
                 w = w.to(dtype=dtype, memory_format=memory_format)
                 print(w.shape)
                 print(self.txt_gate.weight.shape)
-                w_gates = self.txt_gate(w.to(self.txt_gate.weight.dtype))
+                w_gates = self.txt_gate(w)
                 w_gates = torch.nn.functional.relu(w_gates)
                 w_gates = w_gates.transpose(1, 3)
                 print(w_gates.shape)
