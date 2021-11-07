@@ -772,8 +772,9 @@ class DiscriminatorBlock(torch.nn.Module):
         if self.use_encoder_decoder:
             down = max(1, w_txt_res // self.resolution)
             up   = max(1, self.resolution // w_txt_res)
+            self.txt_gate = FullyConnectedLayer(w_dim, tmp_channels, activation='relu')
             self.txt_resample = Conv2dLayer(
-                w_dim, tmp_channels, kernel_size=3, bias=True,
+                tmp_channels, tmp_channels, kernel_size=3, bias=True,
                 up=up, down=down,
                 resample_filter=resample_filter, channels_last=self.channels_last,
                 activation=activation
@@ -782,7 +783,6 @@ class DiscriminatorBlock(torch.nn.Module):
                 tmp_channels, tmp_channels, kernel_size=3, activation=activation,
                 conv_clamp=conv_clamp, channels_last=self.channels_last
             )
-            self.txt_gate = FullyConnectedLayer(w_dim, tmp_channels, activation='relu')
 
 
     def forward(self, x, img, w=None, force_fp32=False, autocasting=False):
@@ -816,16 +816,16 @@ class DiscriminatorBlock(torch.nn.Module):
             if self.use_ws and self.use_encoder_decoder:
                 x = self.conv0(x)
                 w = w.to(dtype=dtype, memory_format=memory_format)
-                w = w.transpose(1, 3)
-                w_resampled = self.txt_resample(w)
-                print(w_resampled.shape)
-                w_resampled = w_resampled.transpose(1, 3)
-                print(w_resampled.shape)
-                w_gates = self.txt_gate(w_resampled)
-                x_gated = self.txt_gated_conv(x)
+                print(w.shape)
+                w_gates = self.txt_gate(w)
+                w_gates = w_gates.transpose(1, 3)
                 print(w_gates.shape)
+                w_gates_resampled = self.txt_resample(w_gates)
+                print(w_gates_resampled.shape)
+                x_gated = self.txt_gated_conv(x)
+                print(w_gates_resampled.shape)
                 print(x_gated.shape)
-                ws_txt_out = w_gates * x_gated
+                ws_txt_out = w_gates * w_gates_resampled
                 x = x + ws_txt_out
             elif self.use_ws:
                 x = self.conv0(x, w)
