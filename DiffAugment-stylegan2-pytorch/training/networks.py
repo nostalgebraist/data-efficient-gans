@@ -641,6 +641,7 @@ class Generator(torch.nn.Module):
         self.img_channels = img_channels
         self.synthesis = SynthesisNetwork(w_dim=w_dim, img_resolution=img_resolution, img_channels=img_channels, **synthesis_kwargs)
         self.num_ws = self.synthesis.num_ws
+        self.text_concat = text_concat
         self.mapping = MappingNetwork(z_dim=z_dim, c_dim=c_dim, w_dim=w_dim, num_ws=self.num_ws,
                                       text_concat=text_concat,
                                       **mapping_kwargs)
@@ -649,7 +650,7 @@ class Generator(torch.nn.Module):
         ws, ws_txt = self.mapping(z, c, txt, truncation_psi=truncation_psi, truncation_cutoff=truncation_cutoff)
 
         img = self.synthesis(ws, ws_txt, txt_gain=txt_gain, autocasting=autocasting,
-                             text_concat=text_concat, **synthesis_kwargs)
+                             text_concat=self.text_concat, **synthesis_kwargs)
         return img
 
 #----------------------------------------------------------------------------
