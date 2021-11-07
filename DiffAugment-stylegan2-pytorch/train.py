@@ -258,8 +258,6 @@ def setup_training_loop_kwargs(
         args.D_kwargs.mapping_kwargs.text_kwargs.depth = text_depth
 
         args.G_kwargs.synthesis_kwargs.text_concat = text_concat
-        if text_concat:
-            args.G_kwargs.w_dim = z_dim + text_dim
 
         if use_ws:
             args.D_kwargs.use_ws = True

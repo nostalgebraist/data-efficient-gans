@@ -185,7 +185,8 @@ class MappingNetwork(torch.nn.Module):
         w_avg_beta      = 0.995,    # Decay for tracking the moving average of W during training, None = do not track.
         use_text_encoder= False,
         text_kwargs     = {},
-        use_encoder_decoder=False
+        use_encoder_decoder=False,
+        text_concat=False,
     ):
         super().__init__()
         self.z_dim = z_dim
@@ -197,7 +198,10 @@ class MappingNetwork(torch.nn.Module):
 
         self.use_encoder_decoder = use_encoder_decoder
         if use_text_encoder:
-            self.text_encoder = TextEncoder(w_dim=w_dim, use_encoder_decoder=use_encoder_decoder, **text_kwargs)
+            text_out_dim = w_dim
+            if text_concat:
+                text_out_dim = w_dim - z_dim
+            self.text_encoder = TextEncoder(w_dim=text_out_dim, use_encoder_decoder=use_encoder_decoder, **text_kwargs)
         else:
             self.text_encoder = None
 
