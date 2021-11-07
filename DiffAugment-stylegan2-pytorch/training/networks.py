@@ -632,7 +632,7 @@ class TextEncoder(torch.nn.Module):
             tgt = torch.zeros((tokens.shape[0], self.dec_max_seq_len), device=tokens.device, dtype=torch.int)
             enc = self.model.encoder(tokens, return_embeddings = True)
             out = self.model.decoder.net(tgt, context=enc, return_embeddings=True)
-            out = rearrange(out, 'b (hw) c --> b h w c')
+            out = rearrange(out, 'b (hw) c -> b h w c')
             out = self.proj(out)
             return out
         else:
