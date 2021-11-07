@@ -252,7 +252,8 @@ class MappingNetwork(torch.nn.Module):
         # Broadcast.
         if self.num_ws is not None:
             with torch.autograd.profiler.record_function('broadcast'):
-                x = x.unsqueeze(1).repeat([1, self.num_ws, 1])
+                if x is not None:
+                    x = x.unsqueeze(1).repeat([1, self.num_ws, 1])
                 if ws_txt is not None:
                     ws_txt = ws_txt.unsqueeze(1).repeat([1, self.num_ws, 1])
 
