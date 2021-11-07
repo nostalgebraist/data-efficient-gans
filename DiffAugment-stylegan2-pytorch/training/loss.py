@@ -31,6 +31,9 @@ class FakeScaler:
     def unscale_(self, optimizer):
         pass
 
+    def get_scale(self):
+        return 1.
+
 #----------------------------------------------------------------------------
 
 class Loss:
