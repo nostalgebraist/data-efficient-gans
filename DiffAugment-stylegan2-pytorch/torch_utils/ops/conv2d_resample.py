@@ -105,9 +105,7 @@ def conv2d_resample(x, w, f=None, up=1, down=1, padding=0, groups=1, flip_weight
 
     # Fast path: 1x1 convolution with downsampling only => downsample first, then convolve.
     if kw == 1 and kh == 1 and (down > 1 and up == 1):
-        print(("conv2d_resample before down", x.shape))
         x = upfirdn2d.upfirdn2d(x=x, f=f, down=down, padding=[px0,px1,py0,py1], flip_filter=flip_filter)
-        print(("conv2d_resample after down", x.shape))
         x = _conv2d_wrapper(x=x, w=w, groups=groups, flip_weight=flip_weight)
         return x
 

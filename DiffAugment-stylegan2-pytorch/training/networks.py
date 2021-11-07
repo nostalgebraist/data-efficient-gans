@@ -445,9 +445,6 @@ class SynthesisBlock(torch.nn.Module):
             if self.use_encoder_decoder:
                 ws_txt = ws_txt.to(dtype=dtype, memory_format=memory_format)
                 ws_txt = ws_txt.transpose(1, 3)
-                print(x.shape)
-                print(ws_txt.shape)
-                print(self.txt_conv.weight.shape)
                 ws_txt_out = self.txt_conv(ws_txt)
                 x = x + ws_txt_out
             x = self.conv1(x, next(w_iter), fused_modconv=fused_modconv, **layer_kwargs)
@@ -457,9 +454,6 @@ class SynthesisBlock(torch.nn.Module):
             if self.use_encoder_decoder:
                 ws_txt = ws_txt.to(dtype=dtype, memory_format=memory_format)
                 ws_txt = ws_txt.transpose(1, 3)
-                print(x.shape)
-                print(ws_txt.shape)
-                print(self.txt_conv.weight.shape)
                 ws_txt_out = self.txt_conv(ws_txt)
                 x = x + ws_txt_out
             x = self.conv1(x, next(w_iter), fused_modconv=fused_modconv, gain=np.sqrt(0.5), **layer_kwargs)
@@ -469,9 +463,6 @@ class SynthesisBlock(torch.nn.Module):
             if self.use_encoder_decoder:
                 ws_txt = ws_txt.to(dtype=dtype, memory_format=memory_format)
                 ws_txt = ws_txt.transpose(1, 3)
-                print(x.shape)
-                print(ws_txt.shape)
-                print(self.txt_conv.weight.shape)
                 ws_txt_out = self.txt_conv(ws_txt)
                 x = x + ws_txt_out
             x = self.conv1(x, next(w_iter), fused_modconv=fused_modconv, **layer_kwargs)
