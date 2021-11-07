@@ -72,8 +72,6 @@ def setup_training_loop_kwargs(
     text_momentum    = None,
     use_enc_dec      = None,
 
-    print(("text_warmup_kimg", text_warmup_kimg))
-
     # Discriminator augmentation.
     diffaugment= None, # Comma-separated list of DiffAugment policy, default = 'color,translation,cutout'
     aug        = None, # Augmentation mode: 'ada' (default), 'noaug', 'fixed'
@@ -92,6 +90,8 @@ def setup_training_loop_kwargs(
     nobench    = None, # Disable cuDNN benchmarking: <bool>, default = False
     workers    = None, # Override number of DataLoader workers: <int>, default = 3
 ):
+    print(("text_warmup_kimg", text_warmup_kimg))
+
     args = dnnlib.EasyDict()
 
     # ------------------------------------------
