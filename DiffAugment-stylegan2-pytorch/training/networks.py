@@ -831,7 +831,7 @@ class Discriminator(torch.nn.Module):
 
         if cmap_dim is None:
             cmap_dim = channels_dict[4]
-        if c_dim == 0 and ((not use_text_encoder) or use_ws):
+        if c_dim == 0 and (not use_text_encoder):
             cmap_dim = 0
 
         common_kwargs = dict(img_channels=img_channels, architecture=architecture, conv_clamp=conv_clamp)
