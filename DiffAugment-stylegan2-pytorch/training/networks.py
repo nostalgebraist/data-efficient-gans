@@ -415,7 +415,7 @@ class SynthesisBlock(torch.nn.Module):
                 w_txt_dim, w_txt_dim, kernel_size=1, bias=True,
                 up=up, down=down,
                 resample_filter=resample_filter, channels_last=self.channels_last,
-                activation=layer_kwargs.get('activation', 'lrelu')
+                activation='linear'
             )
             self.txt_gated_conv = Conv2dLayer(
                 out_channels, out_channels, kernel_size=3, activation=layer_kwargs.get('activation', 'lrelu'),
@@ -807,7 +807,7 @@ class DiscriminatorBlock(torch.nn.Module):
                 w_dim, w_dim, kernel_size=1, bias=True,
                 up=up, down=down,
                 resample_filter=resample_filter, channels_last=self.channels_last,
-                activation=activation
+                activation='linear'
             )
             self.txt_gated_conv = Conv2dLayer(
                 tmp_channels, tmp_channels, kernel_size=3, activation=activation,
