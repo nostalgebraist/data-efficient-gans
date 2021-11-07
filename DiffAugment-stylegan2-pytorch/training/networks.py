@@ -960,6 +960,7 @@ class Discriminator(torch.nn.Module):
             block = DiscriminatorBlock(in_channels, tmp_channels, out_channels, resolution=res,
                 first_layer_idx=cur_layer_idx, use_fp16=use_fp16, use_bf16=use_bf16,
                 use_ws=use_ws,
+                use_encoder_decoder=use_encoder_decoder,
                 **block_kwargs, **common_kwargs)
             setattr(self, f'b{res}', block)
             cur_layer_idx += block.num_layers
