@@ -365,7 +365,7 @@ class SynthesisBlock(torch.nn.Module):
         fp16_channels_last  = False,        # Use channels-last memory format with FP16?
         use_bf16            = False,
         use_encoder_decoder = False,
-        w_txt_res           = 32,
+        w_txt_res           = 16,
         w_txt_dim           = 512,
         **layer_kwargs,                     # Arguments for SynthesisLayer.
     ):
@@ -707,7 +707,7 @@ class Generator(torch.nn.Module):
         synthesis_kwargs    = {},   # Arguments for SynthesisNetwork.
         text_concat         = False,
         use_encoder_decoder = False,
-        w_txt_res           = 32,
+        w_txt_res           = 16,
         w_txt_dim           = 512,
     ):
         super().__init__()
@@ -760,7 +760,7 @@ class DiscriminatorBlock(torch.nn.Module):
         use_ws              = False,
         w_dim               = 512,
         use_encoder_decoder = False,
-        w_txt_res           = 32,
+        w_txt_res           = 16,
 
     ):
         assert in_channels in [0, tmp_channels]
