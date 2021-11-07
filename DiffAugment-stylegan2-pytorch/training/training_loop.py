@@ -202,7 +202,6 @@ def training_loop(
     for name, module, opt_kwargs, reg_interval, scaler, reg_scaler in [('G', G, G_opt_kwargs, G_reg_interval, loss.G_scaler, loss.Greg_scaler), ('D', D, D_opt_kwargs, D_reg_interval, loss.D_scaler, loss.Dreg_scaler)]:
         if reg_interval is None:
             if module.mapping.text_encoder is not None:
-                tenp = {n for n, p in module.text_encoder.named_parameters()}
                 param_groups = [
                     {
                         "params": {p for n, p in module.named_parameters() if 'mapping.text_encoder' not in n}
@@ -216,6 +215,8 @@ def training_loop(
                         ],
                     }
                 ]
+                for i_, g_ in enumerate(param_groups):
+                    print(f"param group {i_}: {len(g['params'])} params")
             else:
                 param_groups = module.parameters()
             opt = dnnlib.util.construct_class_by_name(param_groups, **opt_kwargs) # subclass of torch.optim.Optimizer
