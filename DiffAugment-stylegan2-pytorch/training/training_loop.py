@@ -203,10 +203,10 @@ def training_loop(
         if module.mapping.text_encoder is not None:
             param_groups = [
                 {
-                    "params": {p for n, p in module.named_parameters() if 'mapping.text_encoder' not in n}
+                    "params": [p for n, p in module.named_parameters() if 'mapping.text_encoder' not in n]
                 },
                 {
-                    "params": {p for n, p in module.named_parameters() if 'mapping.text_encoder' in n},
+                    "params": [p for n, p in module.named_parameters() if 'mapping.text_encoder' in n],
                     "lr": text_lr if text_lr is not None else opt_kwargs['lr'],
                     "betas": [
                         text_momentum if text_momentum is not None else opt_kwargs['betas'][0],
@@ -215,9 +215,11 @@ def training_loop(
                 }
             ]
             for i_, g_ in enumerate(param_groups):
-                print(f"{name} param group {i_}: {len(g_['params'])} params")
+                others = " ".join([f"{k}={v}" for k, v in g_.items() if k != 'params'])
+                print(f"{name} param group {i_}: {len(g_['params'])} params, {others}")
         else:
             param_groups = module.parameters()
+
         if reg_interval is None:
             opt = dnnlib.util.construct_class_by_name(param_groups, **opt_kwargs) # subclass of torch.optim.Optimizer
             phases += [dnnlib.EasyDict(name=name+'both', module=module, opt=opt, interval=1, scaler=scaler)]
@@ -234,7 +236,8 @@ def training_loop(
                     g['betas'] = [beta ** mb_ratio for beta in g['betas']]
 
             for i_, g_ in enumerate(param_groups):
-                print(f"{name} param group {i_}: {len(g_['params'])} params")
+                others = " ".join([f"{k}={v}" for k, v in g_.items() if k != 'params'])
+                print(f"{name} param group {i_}: {len(g_['params'])} params, {others}")
 
             opt = dnnlib.util.construct_class_by_name(param_groups, **opt_kwargs) # subclass of torch.optim.Optimizer
             phases += [dnnlib.EasyDict(name=name+'main', module=module, opt=opt, interval=1, scaler=scaler)]
