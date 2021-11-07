@@ -114,7 +114,7 @@ class StyleGAN2Loss(Loss):
                 with torch.autograd.profiler.record_function('pl_grads'), conv2d_gradfix.no_weight_gradients():
                     pl_grads = torch.autograd.grad(outputs=[(gen_img * pl_noise).sum()], inputs=[gen_ws], create_graph=True, only_inputs=True)[0]
                 pl_lengths = pl_grads.square().sum(2).mean(1).sqrt()
-                pl_mean = self.pl_mean.lerp(pl_lengths.mean(), self.pl_decay)
+                pl_mean = self.pl_mean.lerp(pl_lengths.mean().to(self.pl_mean.dtype), self.pl_decay)
                 self.pl_mean.copy_(pl_mean.detach())
                 pl_penalty = (pl_lengths - pl_mean).square()
                 training_stats.report('Loss/pl_penalty', pl_penalty)
