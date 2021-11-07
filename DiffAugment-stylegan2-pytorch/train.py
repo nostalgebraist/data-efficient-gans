@@ -62,6 +62,7 @@ def setup_training_loop_kwargs(
     bf16             = None,
     text             = None,
     text_dim         = None,
+    z_dim            = None,
 
     # Discriminator augmentation.
     diffaugment= None, # Comma-separated list of DiffAugment policy, default = 'color,translation,cutout'
@@ -517,6 +518,7 @@ class CommaSeparatedList(click.ParamType):
 @click.option('--bf16', type=bool)
 @click.option('--text', type=bool)
 @click.option('--text-dim', type=int)
+@click.option('--z-dim', type=int)
 
 # Discriminator augmentation.
 @click.option('--DiffAugment', help='Comma-separated list of DiffAugment policy [default: color,translation,cutout]', type=str)
