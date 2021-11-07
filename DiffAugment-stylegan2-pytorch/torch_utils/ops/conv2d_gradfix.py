@@ -111,7 +111,7 @@ def _conv2d_gradfix(transpose, weight_shape, stride, padding, output_padding, di
             if not transpose:
                 output = torch.nn.functional.conv2d(input=input, weight=weight, bias=bias, **common_kwargs)
             else: # transpose
-                output = torch.nn.functional.conv_transpose2d(input=input.to(weight.dtype), weight=weight, bias=bias, output_padding=output_padding, **common_kwargs)
+                output = torch.nn.functional.conv_transpose2d(input=input, weight=weight.to(input.dtype), bias=bias.to(input.dtype), output_padding=output_padding, **common_kwargs)
             ctx.save_for_backward(input, weight)
             return output
 
@@ -142,7 +142,7 @@ def _conv2d_gradfix(transpose, weight_shape, stride, padding, output_padding, di
         def forward(ctx, grad_output, input):
             op = torch._C._jit_get_operation('aten::cudnn_convolution_backward_weight' if not transpose else 'aten::cudnn_convolution_transpose_backward_weight')
             flags = [torch.backends.cudnn.benchmark, torch.backends.cudnn.deterministic, torch.backends.cudnn.allow_tf32]
-            grad_weight = op(weight_shape, grad_output.to(input.dtype), input, padding, stride, dilation, groups, *flags)
+            grad_weight = op(weight_shape, grad_output, input.to(grad_output.dtype), padding, stride, dilation, groups, *flags)
             assert grad_weight.shape == weight_shape
             ctx.save_for_backward(grad_output, input)
             return grad_weight
