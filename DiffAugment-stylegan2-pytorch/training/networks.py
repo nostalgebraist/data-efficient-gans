@@ -720,7 +720,10 @@ class DiscriminatorBlock(torch.nn.Module):
         freeze_layers       = 0,            # Freeze-D: Number of layers to freeze.
         use_bf16            = False,
         use_ws              = False,
-        w_dim               = 512
+        w_dim               = 512,
+        use_encoder_decoder = False,
+        w_txt_res           = 32,
+
     ):
         assert in_channels in [0, tmp_channels]
         assert architecture in ['orig', 'skip', 'resnet']
@@ -734,6 +737,7 @@ class DiscriminatorBlock(torch.nn.Module):
         self.channels_last = (use_fp16 and fp16_channels_last)
         self.use_bf16 = use_bf16
         self.use_ws = use_ws
+        self.use_encoder_decoder = use_encoder_decoder
         self.register_buffer('resample_filter', upfirdn2d.setup_filter(resample_filter))
 
         self.num_layers = 0
@@ -749,7 +753,7 @@ class DiscriminatorBlock(torch.nn.Module):
             self.fromrgb = Conv2dLayer(img_channels, tmp_channels, kernel_size=1, activation=activation,
                 trainable=next(trainable_iter), conv_clamp=conv_clamp, channels_last=self.channels_last)
 
-        if self.use_ws:
+        if self.use_ws and (not self.use_encoder_decoder):
             self.conv0 = SynthesisLayer(tmp_channels, tmp_channels, w_dim=w_dim, resolution=resolution,
                                         kernel_size=3, activation=activation,
                                         conv_clamp=conv_clamp, channels_last=self.channels_last)
@@ -763,6 +767,16 @@ class DiscriminatorBlock(torch.nn.Module):
         if architecture == 'resnet':
             self.skip = Conv2dLayer(tmp_channels, out_channels, kernel_size=1, bias=False, down=2,
                 trainable=next(trainable_iter), resample_filter=resample_filter, channels_last=self.channels_last)
+
+        if self.use_encoder_decoder:
+            down = max(1, w_txt_res // self.resolution)
+            up   = max(1, self.resolution // w_txt_res)
+            self.txt_conv = Conv2dLayer(
+                w_dim, out_channels, kernel_size=1, bias=False,
+                up=up, down=down,
+                resample_filter=resample_filter, channels_last=self.channels_last
+            )
+
 
     def forward(self, x, img, w=None, force_fp32=False, autocasting=False):
         dtype = torch.float16 if self.use_fp16 and not force_fp32 else torch.float32
@@ -792,14 +806,22 @@ class DiscriminatorBlock(torch.nn.Module):
         # Main layers.
         if self.architecture == 'resnet':
             y = self.skip(x, gain=np.sqrt(0.5))
-            if self.use_ws:
+            if self.use_ws and self.use_encoder_decoder:
+                x = self.conv0(x)
+                ws_txt_out = self.txt_conv(w)
+                x = x + ws_txt_out
+            elif self.use_ws:
                 x = self.conv0(x, w)
             else:
                 x = self.conv0(x)
             x = self.conv1(x, gain=np.sqrt(0.5))
             x = y.add_(x)
         else:
-            if self.use_ws:
+            if self.use_ws and self.use_encoder_decoder:
+                x = self.conv0(x)
+                ws_txt_out = self.txt_conv(w)
+                x = x + ws_txt_out
+            elif self.use_ws:
                 x = self.conv0(x, w)
             else:
                 x = self.conv0(x)
