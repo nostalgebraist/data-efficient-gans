@@ -535,7 +535,7 @@ class SynthesisNetwork(torch.nn.Module):
                 block_w = ws.narrow(1, w_idx, block.num_conv + block.num_torgb)
 
                 if self.use_encoder_decoder:
-                    block_w_txt = txt_gain * ws_txt.narrow(1, w_idx, 1)
+                    block_w_txt = txt_gain * ws_txt.narrow(1, w_idx, 1).squeeze(1)
                 else:
                     block_w_txt = txt_gain * ws_txt.narrow(1, w_idx, block.num_conv + block.num_torgb)
 
