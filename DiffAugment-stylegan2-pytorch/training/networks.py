@@ -409,11 +409,17 @@ class SynthesisBlock(torch.nn.Module):
         if self.use_encoder_decoder:
             down = max(1, w_txt_res // self.resolution)
             up   = max(1, self.resolution // w_txt_res)
-            self.txt_conv = Conv2dLayer(
-                w_txt_dim, out_channels, kernel_size=3, bias=True,
+            self.txt_gate = torch.nn.Linear(w_txt_dim, out_channels,
+                                            dtype=torch.float16 if self.use_fp16 else torch.float32)
+            self.txt_resample = Conv2dLayer(
+                out_channels, out_channels, kernel_size=3, bias=True,
                 up=up, down=down,
                 resample_filter=resample_filter, channels_last=self.channels_last,
-                activation='relu'
+                activation=activation
+            )
+            self.txt_gated_conv = Conv2dLayer(
+                out_channels, out_channels, kernel_size=3, activation=activation,
+                conv_clamp=conv_clamp, channels_last=self.channels_last
             )
 
     def forward(self, x, img, ws, ws_txt=None, force_fp32=False, fused_modconv=None, autocasting=False, **layer_kwargs):
@@ -445,17 +451,30 @@ class SynthesisBlock(torch.nn.Module):
         if self.in_channels == 0:
             if self.use_encoder_decoder:
                 ws_txt = ws_txt.to(dtype=dtype, memory_format=memory_format)
-                ws_txt = ws_txt.transpose(1, 3)
-                ws_txt_out = self.txt_conv(ws_txt)
+                w_gates = self.txt_gate(w)
+                w_gates = torch.nn.functional.relu(w_gates)
+                w_gates = w_gates.transpose(1, 3)
+                w_gates_resampled = self.txt_resample(w_gates)
+                x_gated = self.txt_gated_conv(x)
+                ws_txt_out = x_gated * w_gates_resampled
                 x = x + ws_txt_out
+
+                # ws_txt = ws_txt.to(dtype=dtype, memory_format=memory_format)
+                # ws_txt = ws_txt.transpose(1, 3)
+                # ws_txt_out = self.txt_conv(ws_txt)
+                # x = x + ws_txt_out
             x = self.conv1(x, next(w_iter), fused_modconv=fused_modconv, **layer_kwargs)
         elif self.architecture == 'resnet':
             y = self.skip(x, gain=np.sqrt(0.5))
             x = self.conv0(x, next(w_iter), fused_modconv=fused_modconv, **layer_kwargs)
             if self.use_encoder_decoder:
                 ws_txt = ws_txt.to(dtype=dtype, memory_format=memory_format)
-                ws_txt = ws_txt.transpose(1, 3)
-                ws_txt_out = self.txt_conv(ws_txt)
+                w_gates = self.txt_gate(w)
+                w_gates = torch.nn.functional.relu(w_gates)
+                w_gates = w_gates.transpose(1, 3)
+                w_gates_resampled = self.txt_resample(w_gates)
+                x_gated = self.txt_gated_conv(x)
+                ws_txt_out = x_gated * w_gates_resampled
                 x = x + ws_txt_out
             x = self.conv1(x, next(w_iter), fused_modconv=fused_modconv, gain=np.sqrt(0.5), **layer_kwargs)
             x = y.add_(x)
@@ -463,8 +482,12 @@ class SynthesisBlock(torch.nn.Module):
             x = self.conv0(x, next(w_iter), fused_modconv=fused_modconv, **layer_kwargs)
             if self.use_encoder_decoder:
                 ws_txt = ws_txt.to(dtype=dtype, memory_format=memory_format)
-                ws_txt = ws_txt.transpose(1, 3)
-                ws_txt_out = self.txt_conv(ws_txt)
+                w_gates = self.txt_gate(w)
+                w_gates = torch.nn.functional.relu(w_gates)
+                w_gates = w_gates.transpose(1, 3)
+                w_gates_resampled = self.txt_resample(w_gates)
+                x_gated = self.txt_gated_conv(x)
+                ws_txt_out = x_gated * w_gates_resampled
                 x = x + ws_txt_out
             x = self.conv1(x, next(w_iter), fused_modconv=fused_modconv, **layer_kwargs)
 
