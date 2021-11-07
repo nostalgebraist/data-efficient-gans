@@ -817,17 +817,11 @@ class DiscriminatorBlock(torch.nn.Module):
             if self.use_ws and self.use_encoder_decoder:
                 x = self.conv0(x)
                 w = w.to(dtype=dtype, memory_format=memory_format)
-                print(w.shape)
-                print(self.txt_gate.weight.shape)
                 w_gates = self.txt_gate(w)
                 w_gates = torch.nn.functional.relu(w_gates)
                 w_gates = w_gates.transpose(1, 3)
-                print(w_gates.shape)
                 w_gates_resampled = self.txt_resample(w_gates)
-                print(w_gates_resampled.shape)
                 x_gated = self.txt_gated_conv(x)
-                print(w_gates_resampled.shape)
-                print(x_gated.shape)
                 ws_txt_out = x_gated * w_gates_resampled
                 x = x + ws_txt_out
             elif self.use_ws:
