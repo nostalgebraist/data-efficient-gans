@@ -364,6 +364,9 @@ class SynthesisBlock(torch.nn.Module):
         use_fp16            = False,        # Use FP16 for this block?
         fp16_channels_last  = False,        # Use channels-last memory format with FP16?
         use_bf16            = False,
+        use_encoder_decoder = False,
+        w_txt_res           = 32,
+        w_txt_dim           = 512,
         **layer_kwargs,                     # Arguments for SynthesisLayer.
     ):
         assert architecture in ['orig', 'skip', 'resnet']
@@ -402,7 +405,16 @@ class SynthesisBlock(torch.nn.Module):
             self.skip = Conv2dLayer(in_channels, out_channels, kernel_size=1, bias=False, up=2,
                 resample_filter=resample_filter, channels_last=self.channels_last)
 
-    def forward(self, x, img, ws, force_fp32=False, fused_modconv=None, autocasting=False, **layer_kwargs):
+        if self.use_encoder_decoder:
+            down = max(1, w_txt_res // self.resolution)
+            up   = max(1, self.resolution // w_txt_res)
+            self.txt_conv = Conv2dLayer(
+                w_txt_dim, out_channels, kernel_size=1, bias=False,
+                up=up, down=down,
+                resample_filter=resample_filter, channels_last=self.channels_last
+            )
+
+    def forward(self, x, img, ws, ws_txt=None, force_fp32=False, fused_modconv=None, autocasting=False, **layer_kwargs):
         misc.assert_shape(ws, [None, self.num_conv + self.num_torgb, self.w_dim])
         w_iter = iter(ws.unbind(dim=1))
         dtype = torch.float16 if self.use_fp16 and not force_fp32 else torch.float32
@@ -429,14 +441,20 @@ class SynthesisBlock(torch.nn.Module):
 
         # Main layers.
         if self.in_channels == 0:
+            if self.use_encoder_decoder:
+                x += self.txt_conv(ws_txt)
             x = self.conv1(x, next(w_iter), fused_modconv=fused_modconv, **layer_kwargs)
         elif self.architecture == 'resnet':
             y = self.skip(x, gain=np.sqrt(0.5))
             x = self.conv0(x, next(w_iter), fused_modconv=fused_modconv, **layer_kwargs)
+            if self.use_encoder_decoder:
+                x += self.txt_conv(ws_txt)
             x = self.conv1(x, next(w_iter), fused_modconv=fused_modconv, gain=np.sqrt(0.5), **layer_kwargs)
             x = y.add_(x)
         else:
             x = self.conv0(x, next(w_iter), fused_modconv=fused_modconv, **layer_kwargs)
+            if self.use_encoder_decoder:
+                x += self.txt_conv(ws_txt)
             x = self.conv1(x, next(w_iter), fused_modconv=fused_modconv, **layer_kwargs)
 
         # ToRGB.
@@ -468,6 +486,7 @@ class SynthesisNetwork(torch.nn.Module):
         num_fp16_res    = 0,        # Use FP16 for the N highest resolutions.
         use_bf16        = False,
         text_concat     = False,
+        use_encoder_decoder = False,
         **block_kwargs,             # Arguments for SynthesisBlock.
     ):
         assert img_resolution >= 4 and img_resolution & (img_resolution - 1) == 0
@@ -481,6 +500,7 @@ class SynthesisNetwork(torch.nn.Module):
         fp16_resolution = max(2 ** (self.img_resolution_log2 + 1 - num_fp16_res), 8)
 
         self.text_concat = text_concat
+        self.use_encoder_decoder = use_encoder_decoder
 
         self.num_ws = 0
         for res in self.block_resolutions:
@@ -489,7 +509,9 @@ class SynthesisNetwork(torch.nn.Module):
             use_fp16 = (res >= fp16_resolution)
             is_last = (res == self.img_resolution)
             block = SynthesisBlock(in_channels, out_channels, w_dim=w_dim, resolution=res,
-                img_channels=img_channels, is_last=is_last, use_fp16=use_fp16, use_bf16=use_bf16, **block_kwargs)
+                img_channels=img_channels, is_last=is_last, use_fp16=use_fp16, use_bf16=use_bf16,
+                use_encoder_decoder=use_encoder_decoder,
+                **block_kwargs)
             self.num_ws += block.num_conv
             if is_last:
                 self.num_ws += block.num_torgb
@@ -497,6 +519,7 @@ class SynthesisNetwork(torch.nn.Module):
 
     def forward(self, ws, ws_txt, txt_gain=1., autocasting=False, **block_kwargs):
         block_ws = []
+        block_ws_txt = []
         with torch.autograd.profiler.record_function('split_ws'):
             # misc.assert_shape(ws, [None, self.num_ws, self.w_dim])
             if not autocasting:
@@ -507,20 +530,24 @@ class SynthesisNetwork(torch.nn.Module):
             for res in self.block_resolutions:
                 block = getattr(self, f'b{res}')
                 block_w = ws.narrow(1, w_idx, block.num_conv + block.num_torgb)
-                if self.text_concat:
+                block_w_txt = txt_gain * ws_txt.narrow(1, w_idx, block.num_conv + block.num_torgb)
+                if self.use_encoder_decoder:
+                    pass
+                elif self.text_concat:
                     block_w = torch.cat([block_w,
-                                         txt_gain * ws_txt.narrow(1, w_idx, block.num_conv + block.num_torgb)
+                                         block_w_txt
                                          ],
                                         dim=-1)
                 else:
-                    block_w += txt_gain * ws_txt.narrow(1, w_idx, block.num_conv + block.num_torgb)
+                    block_w += txt_gain * block_w_txt
                 block_ws.append(block_w)
+                block_ws_txt.append(block_w_txt)
                 w_idx += block.num_conv
 
         x = img = None
-        for res, cur_ws in zip(self.block_resolutions, block_ws):
+        for res, cur_ws, cur_ws_txt in zip(self.block_resolutions, block_ws, block_ws_txt):
             block = getattr(self, f'b{res}')
-            x, img = block(x, img, cur_ws, autocasting=autocasting, **block_kwargs)
+            x, img = block(x, img, cur_ws, cur_ws_txt=cur_ws_txt, autocasting=autocasting, **block_kwargs)
         return img
 
 #----------------------------------------------------------------------------
@@ -624,8 +651,10 @@ class Generator(torch.nn.Module):
         img_channels,               # Number of output color channels.
         mapping_kwargs      = {},   # Arguments for MappingNetwork.
         synthesis_kwargs    = {},   # Arguments for SynthesisNetwork.
-        text_kwargs         = {},
         text_concat         = False,
+        use_encoder_decoder = False,
+        w_txt_res           = 32,
+        w_txt_dim           = 512,
     ):
         super().__init__()
         self.z_dim = z_dim
@@ -633,11 +662,19 @@ class Generator(torch.nn.Module):
         self.w_dim = w_dim
         self.img_resolution = img_resolution
         self.img_channels = img_channels
-        self.synthesis = SynthesisNetwork(w_dim=w_dim, img_resolution=img_resolution, img_channels=img_channels, text_concat=text_concat, **synthesis_kwargs)
+        self.synthesis = SynthesisNetwork(
+            w_dim=w_dim, img_resolution=img_resolution, img_channels=img_channels,
+            text_concat=text_concat,
+            use_encoder_decoder=use_encoder_decoder,
+            w_txt_res=w_txt_res,
+            w_txt_dim=w_txt_dim
+            **synthesis_kwargs)
         self.num_ws = self.synthesis.num_ws
         self.text_concat = text_concat
+        self.use_encoder_decoder = use_encoder_decoder
         self.mapping = MappingNetwork(z_dim=z_dim, c_dim=c_dim, w_dim=w_dim, num_ws=self.num_ws,
                                       text_concat=text_concat,
+                                      use_encoder_decoder=use_encoder_decoder,
                                       **mapping_kwargs)
 
     def forward(self, z, c, txt=None, txt_gain=1., autocasting=False, truncation_psi=1, truncation_cutoff=None, **synthesis_kwargs):
@@ -858,7 +895,6 @@ class Discriminator(torch.nn.Module):
         mapping_kwargs      = {},       # Arguments for MappingNetwork.
         epilogue_kwargs     = {},       # Arguments for DiscriminatorEpilogue.
         use_text_encoder    = False,
-        text_kwargs         = {},
         use_ws              = False,
     ):
         super().__init__()
