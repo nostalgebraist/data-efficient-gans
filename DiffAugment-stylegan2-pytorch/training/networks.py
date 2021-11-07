@@ -113,10 +113,7 @@ class FullyConnectedLayer(torch.nn.Module):
         if self.activation == 'linear' and b is not None:
             x = torch.addmm(b.unsqueeze(0), x, w.t())
         else:
-            print(x.shape)
             x = x.matmul(w.t())
-            print(x.shape)
-            print(b.shape)
             x = bias_act.bias_act(x, b.to(x.dtype), act=self.activation)
         return x
 
@@ -775,7 +772,7 @@ class DiscriminatorBlock(torch.nn.Module):
         if self.use_encoder_decoder:
             down = max(1, w_txt_res // self.resolution)
             up   = max(1, self.resolution // w_txt_res)
-            self.txt_gate = torch.nn.Linear(w_dim, tmp_channels)
+            self.txt_gate = torch.nn.Linear(w_dim, tmp_channels, dtype=torch.float16)
             self.txt_resample = Conv2dLayer(
                 tmp_channels, tmp_channels, kernel_size=3, bias=True,
                 up=up, down=down,
