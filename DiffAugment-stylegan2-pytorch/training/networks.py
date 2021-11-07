@@ -201,6 +201,7 @@ class MappingNetwork(torch.nn.Module):
             text_out_dim = w_dim
             if text_concat:
                 text_out_dim = w_dim - z_dim
+                self.w_dim = z_dim
             self.text_encoder = TextEncoder(w_dim=text_out_dim, use_encoder_decoder=use_encoder_decoder, **text_kwargs)
         else:
             self.text_encoder = None
