@@ -64,6 +64,7 @@ def setup_training_loop_kwargs(
     text_dim         = None,
     text_depth       = None,
     z_dim            = None,
+    use_ws           = None,
 
     # Discriminator augmentation.
     diffaugment= None, # Comma-separated list of DiffAugment policy, default = 'color,translation,cutout'
@@ -250,6 +251,9 @@ def setup_training_loop_kwargs(
 
         args.G_kwargs.mapping_kwargs.text_kwargs.depth = text_depth
         args.D_kwargs.mapping_kwargs.text_kwargs.depth = text_depth
+
+        if use_ws:
+            args.D_kwargs.use_ws = True
 
         # TODO: was this a good/bad idea?
         # args.D_kwargs.cmap_dim = latent_size
@@ -530,6 +534,7 @@ class CommaSeparatedList(click.ParamType):
 @click.option('--text-dim', type=int)
 @click.option('--text-depth', type=int)
 @click.option('--z-dim', type=int)
+@click.option('--use-ws', type=bool, metavar='BOOL')
 
 # Discriminator augmentation.
 @click.option('--DiffAugment', help='Comma-separated list of DiffAugment policy [default: color,translation,cutout]', type=str)
