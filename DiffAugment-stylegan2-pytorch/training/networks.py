@@ -587,7 +587,6 @@ class TextEncoder(torch.nn.Module):
 
         if self.use_encoder_decoder:
             enc_kwargs = dict(
-                dim = inner_dim,
                 depth = depth,
                 heads = n_heads,
                 rotary_pos_emb = rotary_pos_emb,
@@ -605,7 +604,7 @@ class TextEncoder(torch.nn.Module):
                 dec_num_tokens = 1,
                 enc_max_seq_len = max_seq_len,
                 dec_max_seq_len = self.dec_max_seq_len,
-                dec_dim = inner_dim,
+                dim = inner_dim,
                 dec_depth = depth,
                 dec_heads = n_heads,
                 dec_rotary_pos_emb = rotary_pos_emb,
