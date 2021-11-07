@@ -244,6 +244,8 @@ def setup_training_loop_kwargs(
         args.G_kwargs.mapping_kwargs.text_kwargs.inner_dim = text_dim
         args.D_kwargs.mapping_kwargs.text_kwargs.inner_dim = text_dim
 
+        args.D_kwargs.cmap_dim = latent_size
+
     if disable_lazy_reg:
         args.G_reg_interval = None
         args.D_reg_interval = None
