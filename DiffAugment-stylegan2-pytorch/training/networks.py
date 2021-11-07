@@ -274,7 +274,7 @@ class MappingNetwork(torch.nn.Module):
         print()
         print(self.z_dim)
         print(self.w_dim)
-        print(self.text_encoder.w_dim)
+        print(self.text_encoder.proj)
         return x, ws_txt
 
 #----------------------------------------------------------------------------
