@@ -462,6 +462,7 @@ class SynthesisNetwork(torch.nn.Module):
         channel_max     = 512,      # Maximum number of channels in any layer.
         num_fp16_res    = 0,        # Use FP16 for the N highest resolutions.
         use_bf16        = False,
+        text_concat     = False,
         **block_kwargs,             # Arguments for SynthesisBlock.
     ):
         assert img_resolution >= 4 and img_resolution & (img_resolution - 1) == 0
@@ -473,6 +474,8 @@ class SynthesisNetwork(torch.nn.Module):
         self.block_resolutions = [2 ** i for i in range(2, self.img_resolution_log2 + 1)]
         channels_dict = {res: min(channel_base // res, channel_max) for res in self.block_resolutions}
         fp16_resolution = max(2 ** (self.img_resolution_log2 + 1 - num_fp16_res), 8)
+
+        self.text_concat = text_concat
 
         self.num_ws = 0
         for res in self.block_resolutions:
@@ -499,7 +502,13 @@ class SynthesisNetwork(torch.nn.Module):
             for res in self.block_resolutions:
                 block = getattr(self, f'b{res}')
                 block_w = ws.narrow(1, w_idx, block.num_conv + block.num_torgb)
-                block_w += txt_gain * ws_txt.narrow(1, w_idx, block.num_conv + block.num_torgb)
+                if self.text_concat:
+                    block_w = torch.cat([block_w,
+                                         txt_gain * ws_txt.narrow(1, w_idx, block.num_conv + block.num_torgb)
+                                         ],
+                                        dim=-1)
+                else:
+                    block_w += txt_gain * ws_txt.narrow(1, w_idx, block.num_conv + block.num_torgb)
                 block_ws.append(block_w)
                 w_idx += block.num_conv
 
@@ -841,7 +850,7 @@ class Discriminator(torch.nn.Module):
         epilogue_kwargs     = {},       # Arguments for DiscriminatorEpilogue.
         use_text_encoder    = False,
         text_kwargs         = {},
-        use_ws              = False
+        use_ws              = False,
     ):
         super().__init__()
         self.c_dim = c_dim
@@ -872,6 +881,7 @@ class Discriminator(torch.nn.Module):
             cur_layer_idx += block.num_layers
 
         self.use_ws = use_ws
+
         self.num_ws = None
         if c_dim > 0 or use_text_encoder:
             if self.use_ws:

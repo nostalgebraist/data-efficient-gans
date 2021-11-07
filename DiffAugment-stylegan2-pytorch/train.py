@@ -67,6 +67,7 @@ def setup_training_loop_kwargs(
     use_ws           = None,
     amp              = False,
     text_warmup_kimg = 0,
+    text_concat      = False,
 
     # Discriminator augmentation.
     diffaugment= None, # Comma-separated list of DiffAugment policy, default = 'color,translation,cutout'
@@ -255,6 +256,8 @@ def setup_training_loop_kwargs(
 
         args.G_kwargs.mapping_kwargs.text_kwargs.depth = text_depth
         args.D_kwargs.mapping_kwargs.text_kwargs.depth = text_depth
+
+        args.G_kwargs.synthesis_kwargs.text_concat = text_concat
 
         if use_ws:
             args.D_kwargs.use_ws = True
@@ -541,6 +544,7 @@ class CommaSeparatedList(click.ParamType):
 @click.option('--use-ws', type=bool, metavar='BOOL')
 @click.option('--amp', type=bool, metavar='BOOL')
 @click.option('--text-warmup-kimg', type=int)
+@click.option('--text-concat', type=bool, metavar='BOOL')
 
 # Discriminator augmentation.
 @click.option('--DiffAugment', help='Comma-separated list of DiffAugment policy [default: color,translation,cutout]', type=str)
