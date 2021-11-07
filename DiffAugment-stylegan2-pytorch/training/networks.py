@@ -412,8 +412,7 @@ class SynthesisBlock(torch.nn.Module):
         if self.use_encoder_decoder:
             down = max(1, w_txt_res // self.resolution)
             up   = max(1, self.resolution // w_txt_res)
-            self.txt_gate = torch.nn.Linear(w_txt_dim, out_channels,
-                                            dtype=torch.float16 if self.use_fp16 else torch.float32)
+            self.txt_gate = torch.nn.Linear(w_txt_dim, out_channels)
             self.txt_resample = Conv2dLayer(
                 w_txt_dim, w_txt_dim, kernel_size=1, bias=True,
                 up=up, down=down,
@@ -457,8 +456,8 @@ class SynthesisBlock(torch.nn.Module):
                 ws_txt = ws_txt.transpose(1, 3)
                 w_resampled = self.txt_resample(ws_txt)
                 w_resampled = w_resampled.transpose(1, 3)
-                w_gates = self.txt_gate(w_resampled)
-                w_gates = torch.sigmoid(w_gates)
+                w_gates = self.txt_gate(w_resampled.to(self.txt_gate.weight.dtype))
+                w_gates = torch.sigmoid(w_gates).to(dtype)
                 w_gates = w_gates.transpose(1, 3)
                 x_gated = self.txt_gated_conv(x)
                 ws_txt_out = x_gated * w_gates
@@ -477,8 +476,8 @@ class SynthesisBlock(torch.nn.Module):
                 ws_txt = ws_txt.transpose(1, 3)
                 w_resampled = self.txt_resample(ws_txt)
                 w_resampled = w_resampled.transpose(1, 3)
-                w_gates = self.txt_gate(w_resampled)
-                w_gates = torch.sigmoid(w_gates)
+                w_gates = self.txt_gate(w_resampled.to(self.txt_gate.weight.dtype))
+                w_gates = torch.sigmoid(w_gates).to(dtype)
                 w_gates = w_gates.transpose(1, 3)
                 x_gated = self.txt_gated_conv(x)
                 ws_txt_out = x_gated * w_gates
@@ -492,8 +491,8 @@ class SynthesisBlock(torch.nn.Module):
                 ws_txt = ws_txt.transpose(1, 3)
                 w_resampled = self.txt_resample(ws_txt)
                 w_resampled = w_resampled.transpose(1, 3)
-                w_gates = self.txt_gate(w_resampled)
-                w_gates = torch.sigmoid(w_gates)
+                w_gates = self.txt_gate(w_resampled.to(self.txt_gate.weight.dtype))
+                w_gates = torch.sigmoid(w_gates).to(dtype)
                 w_gates = w_gates.transpose(1, 3)
                 x_gated = self.txt_gated_conv(x)
                 ws_txt_out = x_gated * w_gates
@@ -807,8 +806,7 @@ class DiscriminatorBlock(torch.nn.Module):
         if self.use_encoder_decoder:
             down = max(1, w_txt_res // self.resolution)
             up   = max(1, self.resolution // w_txt_res)
-            self.txt_gate = torch.nn.Linear(w_dim, tmp_channels,
-                                            dtype=torch.float16 if self.use_fp16 else torch.float32)
+            self.txt_gate = torch.nn.Linear(w_dim, tmp_channels)
             self.txt_resample = Conv2dLayer(
                 w_dim, w_dim, kernel_size=1, bias=True,
                 up=up, down=down,
@@ -855,8 +853,8 @@ class DiscriminatorBlock(torch.nn.Module):
                 w = w.transpose(1, 3)
                 w_resampled = self.txt_resample(w)
                 w_resampled = w_resampled.transpose(1, 3)
-                w_gates = self.txt_gate(w_resampled)
-                w_gates = torch.sigmoid(w_gates)
+                w_gates = self.txt_gate(w_resampled.to(self.txt_gate.weight.dtype))
+                w_gates = torch.sigmoid(w_gates).to(dtype)
                 w_gates = w_gates.transpose(1, 3)
                 x_gated = self.txt_gated_conv(x)
                 ws_txt_out = x_gated * w_gates
@@ -874,8 +872,8 @@ class DiscriminatorBlock(torch.nn.Module):
                 w = w.transpose(1, 3)
                 w_resampled = self.txt_resample(w)
                 w_resampled = w_resampled.transpose(1, 3)
-                w_gates = self.txt_gate(w_resampled)
-                w_gates = torch.sigmoid(w_gates)
+                w_gates = self.txt_gate(w_resampled.to(self.txt_gate.weight.dtype))
+                w_gates = torch.sigmoid(w_gates).to(dtype)
                 w_gates = w_gates.transpose(1, 3)
                 x_gated = self.txt_gated_conv(x)
                 ws_txt_out = x_gated * w_gates
