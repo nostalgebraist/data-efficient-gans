@@ -493,7 +493,8 @@ class SynthesisNetwork(torch.nn.Module):
             misc.assert_shape(ws, [None, self.num_ws, self.w_dim])
             if not autocasting:
                 ws = ws.to(torch.float32)
-                ws_txt = ws_txt.to(torch.float32)
+                if ws_txt is not None:
+                    ws_txt = ws_txt.to(torch.float32)
             w_idx = 0
             for res in self.block_resolutions:
                 block = getattr(self, f'b{res}')
