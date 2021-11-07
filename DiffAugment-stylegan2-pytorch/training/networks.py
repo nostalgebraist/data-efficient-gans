@@ -451,7 +451,7 @@ class SynthesisBlock(torch.nn.Module):
         if self.in_channels == 0:
             if self.use_encoder_decoder:
                 ws_txt = ws_txt.to(dtype=dtype, memory_format=memory_format)
-                w_gates = self.txt_gate(w)
+                w_gates = self.txt_gate(ws_txt)
                 w_gates = torch.nn.functional.relu(w_gates)
                 w_gates = w_gates.transpose(1, 3)
                 w_gates_resampled = self.txt_resample(w_gates)
@@ -469,7 +469,7 @@ class SynthesisBlock(torch.nn.Module):
             x = self.conv0(x, next(w_iter), fused_modconv=fused_modconv, **layer_kwargs)
             if self.use_encoder_decoder:
                 ws_txt = ws_txt.to(dtype=dtype, memory_format=memory_format)
-                w_gates = self.txt_gate(w)
+                w_gates = self.txt_gate(ws_txt)
                 w_gates = torch.nn.functional.relu(w_gates)
                 w_gates = w_gates.transpose(1, 3)
                 w_gates_resampled = self.txt_resample(w_gates)
@@ -482,7 +482,7 @@ class SynthesisBlock(torch.nn.Module):
             x = self.conv0(x, next(w_iter), fused_modconv=fused_modconv, **layer_kwargs)
             if self.use_encoder_decoder:
                 ws_txt = ws_txt.to(dtype=dtype, memory_format=memory_format)
-                w_gates = self.txt_gate(w)
+                w_gates = self.txt_gate(ws_txt)
                 w_gates = torch.nn.functional.relu(w_gates)
                 w_gates = w_gates.transpose(1, 3)
                 w_gates_resampled = self.txt_resample(w_gates)
