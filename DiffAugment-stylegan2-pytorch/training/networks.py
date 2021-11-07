@@ -771,6 +771,7 @@ class DiscriminatorBlock(torch.nn.Module):
         if self.use_encoder_decoder:
             down = max(1, w_txt_res // self.resolution)
             up   = max(1, self.resolution // w_txt_res)
+            print(("up down rez txt_rez", up, down, self.resolution, w_txt_res))
             self.txt_conv = Conv2dLayer(
                 w_dim, out_channels, kernel_size=1, bias=False,
                 up=up, down=down,
@@ -811,6 +812,8 @@ class DiscriminatorBlock(torch.nn.Module):
                 w = w.to(dtype=dtype, memory_format=memory_format)
                 w = w.transpose(1, 3)
                 ws_txt_out = self.txt_conv(w)
+                print(x.shape)
+                print(ws_txt_out.shape)
                 x = x + ws_txt_out
             elif self.use_ws:
                 x = self.conv0(x, w)
