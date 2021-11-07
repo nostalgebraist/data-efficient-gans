@@ -384,8 +384,8 @@ class SynthesisBlock(torch.nn.Module):
         self.num_conv = 0
         self.num_torgb = 0
 
-        if use_encoder_decoder and conv_clamp is not None:
-            conv_clamp = conv_clamp // 2
+        # if use_encoder_decoder and conv_clamp is not None:
+        #     conv_clamp = conv_clamp // 2
 
         if in_channels == 0:
             self.const = torch.nn.Parameter(torch.randn([out_channels, resolution, resolution]))
@@ -459,7 +459,7 @@ class SynthesisBlock(torch.nn.Module):
                 w_gates = self.txt_gate(w_resampled.to(self.txt_gate.weight.dtype))
                 w_gates = torch.sigmoid(w_gates).to(dtype)
                 w_gates = w_gates.transpose(1, 3)
-                x_gated = self.txt_gated_conv(x)
+                x_gated = self.txt_gated_conv(x, gain=np.sqrt(0.5))
                 ws_txt_out = x_gated * w_gates
                 x = x + ws_txt_out
 
@@ -470,7 +470,10 @@ class SynthesisBlock(torch.nn.Module):
             x = self.conv1(x, next(w_iter), fused_modconv=fused_modconv, **layer_kwargs)
         elif self.architecture == 'resnet':
             y = self.skip(x, gain=np.sqrt(0.5))
-            x = self.conv0(x, next(w_iter), fused_modconv=fused_modconv, **layer_kwargs)
+            x = self.conv0(x, next(w_iter),
+                           fused_modconv=fused_modconv,
+                           gain=np.sqrt(0.5) if self.use_encoder_decoder else 1.,
+                           **layer_kwargs)
             if self.use_encoder_decoder:
                 ws_txt = ws_txt.to(dtype=dtype, memory_format=memory_format)
                 ws_txt = ws_txt.transpose(1, 3)
@@ -479,13 +482,16 @@ class SynthesisBlock(torch.nn.Module):
                 w_gates = self.txt_gate(w_resampled.to(self.txt_gate.weight.dtype))
                 w_gates = torch.sigmoid(w_gates).to(dtype)
                 w_gates = w_gates.transpose(1, 3)
-                x_gated = self.txt_gated_conv(x)
+                x_gated = self.txt_gated_conv(x, gain=np.sqrt(0.5))
                 ws_txt_out = x_gated * w_gates
                 x = x + ws_txt_out
             x = self.conv1(x, next(w_iter), fused_modconv=fused_modconv, gain=np.sqrt(0.5), **layer_kwargs)
             x = y.add_(x)
         else:
-            x = self.conv0(x, next(w_iter), fused_modconv=fused_modconv, **layer_kwargs)
+            x = self.conv0(x, next(w_iter),
+                           fused_modconv=fused_modconv,
+                           gain=np.sqrt(0.5) if self.use_encoder_decoder else 1.,
+                           **layer_kwargs)
             if self.use_encoder_decoder:
                 ws_txt = ws_txt.to(dtype=dtype, memory_format=memory_format)
                 ws_txt = ws_txt.transpose(1, 3)
@@ -494,7 +500,7 @@ class SynthesisBlock(torch.nn.Module):
                 w_gates = self.txt_gate(w_resampled.to(self.txt_gate.weight.dtype))
                 w_gates = torch.sigmoid(w_gates).to(dtype)
                 w_gates = w_gates.transpose(1, 3)
-                x_gated = self.txt_gated_conv(x)
+                x_gated = self.txt_gated_conv(x, gain=np.sqrt(0.5))
                 ws_txt_out = x_gated * w_gates
                 x = x + ws_txt_out
             x = self.conv1(x, next(w_iter), fused_modconv=fused_modconv, **layer_kwargs)
@@ -772,8 +778,8 @@ class DiscriminatorBlock(torch.nn.Module):
         self.use_encoder_decoder = use_encoder_decoder
         self.register_buffer('resample_filter', upfirdn2d.setup_filter(resample_filter))
 
-        if use_encoder_decoder and conv_clamp is not None:
-            conv_clamp = conv_clamp // 2
+        # if use_encoder_decoder and conv_clamp is not None:
+        #     conv_clamp = conv_clamp // 2
 
         self.num_layers = 0
         def trainable_gen():
@@ -848,7 +854,7 @@ class DiscriminatorBlock(torch.nn.Module):
         if self.architecture == 'resnet':
             y = self.skip(x, gain=np.sqrt(0.5))
             if self.use_ws and self.use_encoder_decoder:
-                x = self.conv0(x)
+                x = self.conv0(x, gain=np.sqrt(0.5))
                 w = w.to(dtype=dtype, memory_format=memory_format)
                 w = w.transpose(1, 3)
                 w_resampled = self.txt_resample(w)
@@ -856,7 +862,7 @@ class DiscriminatorBlock(torch.nn.Module):
                 w_gates = self.txt_gate(w_resampled.to(self.txt_gate.weight.dtype))
                 w_gates = torch.sigmoid(w_gates).to(dtype)
                 w_gates = w_gates.transpose(1, 3)
-                x_gated = self.txt_gated_conv(x)
+                x_gated = self.txt_gated_conv(x, gain=np.sqrt(0.5))
                 ws_txt_out = x_gated * w_gates
                 x = x + ws_txt_out
             elif self.use_ws:
@@ -867,7 +873,7 @@ class DiscriminatorBlock(torch.nn.Module):
             x = y.add_(x)
         else:
             if self.use_ws and self.use_encoder_decoder:
-                x = self.conv0(x)
+                x = self.conv0(x, gain=np.sqrt(0.5))
                 w = w.to(dtype=dtype, memory_format=memory_format)
                 w = w.transpose(1, 3)
                 w_resampled = self.txt_resample(w)
@@ -875,7 +881,7 @@ class DiscriminatorBlock(torch.nn.Module):
                 w_gates = self.txt_gate(w_resampled.to(self.txt_gate.weight.dtype))
                 w_gates = torch.sigmoid(w_gates).to(dtype)
                 w_gates = w_gates.transpose(1, 3)
-                x_gated = self.txt_gated_conv(x)
+                x_gated = self.txt_gated_conv(x, gain=np.sqrt(0.5))
                 ws_txt_out = x_gated * w_gates
                 x = x + ws_txt_out
             elif self.use_ws:
