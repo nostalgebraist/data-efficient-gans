@@ -808,8 +808,8 @@ class DiscriminatorBlock(torch.nn.Module):
             y = self.skip(x, gain=np.sqrt(0.5))
             if self.use_ws and self.use_encoder_decoder:
                 x = self.conv0(x)
-                ws_txt = ws_txt.to(dtype=dtype, memory_format=memory_format)
-                ws_txt = ws_txt.transpose(1, 3)
+                w = w.to(dtype=dtype, memory_format=memory_format)
+                w = w.transpose(1, 3)
                 ws_txt_out = self.txt_conv(w)
                 x = x + ws_txt_out
             elif self.use_ws:
@@ -821,8 +821,8 @@ class DiscriminatorBlock(torch.nn.Module):
         else:
             if self.use_ws and self.use_encoder_decoder:
                 x = self.conv0(x)
-                ws_txt = ws_txt.to(dtype=dtype, memory_format=memory_format)
-                ws_txt = ws_txt.transpose(1, 3)
+                w = w.to(dtype=dtype, memory_format=memory_format)
+                w = w.transpose(1, 3)
                 ws_txt_out = self.txt_conv(w)
                 x = x + ws_txt_out
             elif self.use_ws:
