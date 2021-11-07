@@ -165,7 +165,7 @@ class Conv2dLayer(torch.nn.Module):
 
         act_gain = self.act_gain * gain
         act_clamp = self.conv_clamp * gain if self.conv_clamp is not None else None
-        x = bias_act.bias_act(x, b, act=self.activation, gain=act_gain, clamp=act_clamp)
+        x = bias_act.bias_act(x, b.to(x.dtype), act=self.activation, gain=act_gain, clamp=act_clamp)
         return x
 
 #----------------------------------------------------------------------------
