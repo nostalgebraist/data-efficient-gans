@@ -412,7 +412,7 @@ class SynthesisBlock(torch.nn.Module):
             self.txt_gate = torch.nn.Linear(w_txt_dim, out_channels,
                                             dtype=torch.float16 if self.use_fp16 else torch.float32)
             self.txt_resample = Conv2dLayer(
-                out_channels, out_channels, kernel_size=1, bias=True,
+                w_txt_dim, w_txt_dim, kernel_size=1, bias=True,
                 up=up, down=down,
                 resample_filter=resample_filter, channels_last=self.channels_last,
                 activation=layer_kwargs.get('activation', 'lrelu')
@@ -804,7 +804,7 @@ class DiscriminatorBlock(torch.nn.Module):
             self.txt_gate = torch.nn.Linear(w_dim, tmp_channels,
                                             dtype=torch.float16 if self.use_fp16 else torch.float32)
             self.txt_resample = Conv2dLayer(
-                tmp_channels, tmp_channels, kernel_size=1, bias=True,
+                w_dim, w_dim, kernel_size=1, bias=True,
                 up=up, down=down,
                 resample_filter=resample_filter, channels_last=self.channels_last,
                 activation=activation
