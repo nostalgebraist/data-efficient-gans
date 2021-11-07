@@ -280,6 +280,7 @@ def training_loop(
 
         # Execute training phases.
         for phase, phase_gen_z, phase_gen_c in zip(phases, all_gen_z, all_gen_c):
+            print(phase.name)
             if batch_idx % phase.interval != 0:
                 continue
 
