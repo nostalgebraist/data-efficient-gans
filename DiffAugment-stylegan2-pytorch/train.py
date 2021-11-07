@@ -218,10 +218,13 @@ def setup_training_loop_kwargs(
     if latent_size is None:
         latent_size = 512
 
+    if z_dim is None:
+        z_dim = latent_size
+
     if fmax is None:
         fmax = 512
 
-    args.G_kwargs = dnnlib.EasyDict(class_name='training.networks.Generator', z_dim=latent_size, w_dim=latent_size, mapping_kwargs=dnnlib.EasyDict(text_kwargs = dnnlib.EasyDict()), synthesis_kwargs=dnnlib.EasyDict())
+    args.G_kwargs = dnnlib.EasyDict(class_name='training.networks.Generator', z_dim=z_dim, layer_features=z_dim, w_dim=latent_size, mapping_kwargs=dnnlib.EasyDict(text_kwargs = dnnlib.EasyDict()), synthesis_kwargs=dnnlib.EasyDict())
     args.D_kwargs = dnnlib.EasyDict(class_name='training.networks.Discriminator', block_kwargs=dnnlib.EasyDict(), mapping_kwargs=dnnlib.EasyDict(text_kwargs = dnnlib.EasyDict()), epilogue_kwargs=dnnlib.EasyDict())
     args.G_kwargs.synthesis_kwargs.channel_base = args.D_kwargs.channel_base = int(spec.fmaps * 32768)
     args.G_kwargs.synthesis_kwargs.channel_max = args.D_kwargs.channel_max = fmax
