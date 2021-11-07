@@ -410,7 +410,7 @@ class SynthesisBlock(torch.nn.Module):
             down = max(1, w_txt_res // self.resolution)
             up   = max(1, self.resolution // w_txt_res)
             self.txt_conv = Conv2dLayer(
-                w_txt_dim, out_channels, kernel_size=1, bias=False,
+                w_txt_dim, out_channels, kernel_size=1, bias=True,
                 up=up, down=down,
                 resample_filter=resample_filter, channels_last=self.channels_last,
                 activation=layer_kwargs.get('activation', 'lrelu')
@@ -773,7 +773,7 @@ class DiscriminatorBlock(torch.nn.Module):
             down = max(1, w_txt_res // self.resolution)
             up   = max(1, self.resolution // w_txt_res)
             self.txt_conv = Conv2dLayer(
-                w_dim, tmp_channels, kernel_size=1, bias=False,
+                w_dim, tmp_channels, kernel_size=1, bias=True,
                 up=up, down=down,
                 resample_filter=resample_filter, channels_last=self.channels_last,
                 activation=activation
