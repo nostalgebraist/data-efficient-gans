@@ -114,6 +114,7 @@ class FullyConnectedLayer(torch.nn.Module):
             x = torch.addmm(b.unsqueeze(0), x, w.t())
         else:
             x = x.matmul(w.t())
+            print((x.dtype, b.dtype))
             x = bias_act.bias_act(x, b, act=self.activation)
         return x
 
