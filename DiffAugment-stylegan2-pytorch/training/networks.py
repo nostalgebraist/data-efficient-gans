@@ -866,7 +866,13 @@ class DiscriminatorBlock(torch.nn.Module):
                 x = self.conv0(x)
                 w = w.to(dtype=dtype, memory_format=memory_format)
                 w = w.transpose(1, 3)
-                ws_txt_out = self.txt_conv(w)
+                w_resampled = self.txt_resample(w)
+                w_resampled = w_resampled.transpose(1, 3)
+                w_gates = self.txt_gate(w_resampled)
+                w_gates = torch.sigmoid(w_gates)
+                w_gates = w_gates.transpose(1, 3)
+                x_gated = self.txt_gated_conv(x)
+                ws_txt_out = x_gated * w_gates
                 x = x + ws_txt_out
             elif self.use_ws:
                 x = self.conv0(x, w)
