@@ -508,8 +508,8 @@ class TextEncoder(torch.nn.Module):
         max_seq_len = 130,
         rotary_pos_emb = True,
         ff_glu = True,
-        use_scalenorm = False,
-        use_rezero = True,
+        use_scalenorm = True,
+        use_rezero = False,
         use_encoder_decoder = False,
         decoder_sqrt_ntok = 32,
         encoder_kwargs = {}
