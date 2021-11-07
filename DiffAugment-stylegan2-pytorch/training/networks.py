@@ -260,8 +260,7 @@ class MappingNetwork(torch.nn.Module):
                 if x is not None:
                     x = x.unsqueeze(1).repeat([1, self.num_ws, 1])
                 if ws_txt is not None:
-                    print(ws_txt.shape)
-                    ws_txt = ws_txt.unsqueeze(1).repeat([1, self.num_ws, 1])
+                    ws_txt = ws_txt.unsqueeze(1).repeat([1, self.num_ws] + [1]*(ws_txt.ndim-1))
 
         # Apply truncation.
         if truncation_psi != 1:
