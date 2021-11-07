@@ -548,7 +548,7 @@ class SynthesisNetwork(torch.nn.Module):
         x = img = None
         for res, cur_ws, cur_ws_txt in zip(self.block_resolutions, block_ws, block_ws_txt):
             block = getattr(self, f'b{res}')
-            x, img = block(x, img, cur_ws, cur_ws_txt=cur_ws_txt, autocasting=autocasting, **block_kwargs)
+            x, img = block(x, img, cur_ws, ws_txt=cur_ws_txt, autocasting=autocasting, **block_kwargs)
         return img
 
 #----------------------------------------------------------------------------
