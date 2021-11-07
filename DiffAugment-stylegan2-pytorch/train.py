@@ -68,6 +68,8 @@ def setup_training_loop_kwargs(
     amp              = False,
     text_warmup_kimg = 0,
     text_concat      = False,
+    text_lr          = None,
+    text_momentum    = None,
 
     # Discriminator augmentation.
     diffaugment= None, # Comma-separated list of DiffAugment policy, default = 'color,translation,cutout'
@@ -261,6 +263,12 @@ def setup_training_loop_kwargs(
 
         if use_ws:
             args.D_kwargs.use_ws = True
+
+        if text_lr:
+            args.text_lr = text_lr
+
+        if text_momentum:
+            args.text_momentum = text_momentum
 
         # TODO: was this a good/bad idea?
         # args.D_kwargs.cmap_dim = latent_size
@@ -545,6 +553,8 @@ class CommaSeparatedList(click.ParamType):
 @click.option('--amp', type=bool, metavar='BOOL')
 @click.option('--text-warmup-kimg', type=int)
 @click.option('--text-concat', type=bool, metavar='BOOL')
+@click.option('--text-lr', type=float)
+@click.option('--text-momentum', type=float)
 
 # Discriminator augmentation.
 @click.option('--DiffAugment', help='Comma-separated list of DiffAugment policy [default: color,translation,cutout]', type=str)

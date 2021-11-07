@@ -120,6 +120,8 @@ def training_loop(
     progress_fn             = None,     # Callback function for updating training progress. Called for all ranks.
     amp = False,
     text_warmup_kimg        = 0,
+    text_lr                 = None,
+    text_momentum           = None,
 ):
     # Initialize.
     start_time = time.time()
@@ -199,7 +201,24 @@ def training_loop(
     phases = []
     for name, module, opt_kwargs, reg_interval, scaler, reg_scaler in [('G', G, G_opt_kwargs, G_reg_interval, loss.G_scaler, loss.Greg_scaler), ('D', D, D_opt_kwargs, D_reg_interval, loss.D_scaler, loss.Dreg_scaler)]:
         if reg_interval is None:
-            opt = dnnlib.util.construct_class_by_name(params=module.parameters(), **opt_kwargs) # subclass of torch.optim.Optimizer
+            if module.mapping.text_encoder is not None:
+                tenp = {n for n, p in module.text_encoder.named_parameters()}
+                param_groups = [
+                    {
+                        "params": {p for n, p in module.named_parameters() if 'mapping.text_encoder' not in n}
+                    },
+                    {
+                        "params": {p for n, p in module.named_parameters() if 'mapping.text_encoder' in n},
+                        "lr": text_lr if text_lr is not None else opt_kwargs['lr'],
+                        "betas": [
+                            text_momentum if text_momentum is not None else opt_kwargs['betas'][0],
+                            opt_kwargs['betas'][1],
+                        ],
+                    }
+                ]
+            else:
+                param_groups = module.parameters()
+            opt = dnnlib.util.construct_class_by_name(param_groups, **opt_kwargs) # subclass of torch.optim.Optimizer
             phases += [dnnlib.EasyDict(name=name+'both', module=module, opt=opt, interval=1, scaler=scaler)]
         else: # Lazy regularization.
             mb_ratio = reg_interval / (reg_interval + 1)
