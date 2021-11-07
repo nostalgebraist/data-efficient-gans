@@ -833,8 +833,7 @@ class Discriminator(torch.nn.Module):
         if c_dim == 0 and ((not use_text_encoder) or use_ws):
             cmap_dim = 0
 
-        common_kwargs = dict(img_channels=img_channels, architecture=architecture, conv_clamp=conv_clamp,
-                             use_ws=use_ws)
+        common_kwargs = dict(img_channels=img_channels, architecture=architecture, conv_clamp=conv_clamp)
         cur_layer_idx = 0
         for res in self.block_resolutions:
             in_channels = channels_dict[res] if res < img_resolution else 0
@@ -842,7 +841,9 @@ class Discriminator(torch.nn.Module):
             out_channels = channels_dict[res // 2]
             use_fp16 = (res >= fp16_resolution)
             block = DiscriminatorBlock(in_channels, tmp_channels, out_channels, resolution=res,
-                first_layer_idx=cur_layer_idx, use_fp16=use_fp16, use_bf16=use_bf16, **block_kwargs, **common_kwargs)
+                first_layer_idx=cur_layer_idx, use_fp16=use_fp16, use_bf16=use_bf16,
+                use_ws=use_ws,
+                **block_kwargs, **common_kwargs)
             setattr(self, f'b{res}', block)
             cur_layer_idx += block.num_layers
 
