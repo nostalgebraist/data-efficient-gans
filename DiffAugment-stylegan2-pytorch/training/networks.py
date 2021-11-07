@@ -460,6 +460,8 @@ class SynthesisBlock(torch.nn.Module):
                 w_gates = torch.sigmoid(w_gates).to(dtype)
                 w_gates = w_gates.transpose(1, 3)
                 x_gated = self.txt_gated_conv(x, gain=np.sqrt(0.5))
+                print(x_gated.shape)
+                print(w_gates.shape)
                 ws_txt_out = x_gated * w_gates
                 x = x + ws_txt_out
 
