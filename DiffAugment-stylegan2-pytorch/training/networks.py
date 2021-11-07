@@ -443,6 +443,7 @@ class SynthesisBlock(torch.nn.Module):
         # Main layers.
         if self.in_channels == 0:
             if self.use_encoder_decoder:
+                ws_txt = ws_txt.to(dtype=dtype, memory_format=memory_format)
                 print(x.shape)
                 print(ws_txt.shape)
                 x += self.txt_conv(ws_txt)
