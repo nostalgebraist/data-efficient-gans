@@ -449,7 +449,7 @@ class SynthesisBlock(torch.nn.Module):
                 print(ws_txt.shape)
                 print(self.txt_conv.weight.shape)
                 ws_txt_out = self.txt_conv(ws_txt)
-                x += ws_txt_out
+                x = x + ws_txt_out
             x = self.conv1(x, next(w_iter), fused_modconv=fused_modconv, **layer_kwargs)
         elif self.architecture == 'resnet':
             y = self.skip(x, gain=np.sqrt(0.5))
@@ -461,7 +461,7 @@ class SynthesisBlock(torch.nn.Module):
                 print(ws_txt.shape)
                 print(self.txt_conv.weight.shape)
                 ws_txt_out = self.txt_conv(ws_txt)
-                x += ws_txt_out
+                x = x + ws_txt_out
             x = self.conv1(x, next(w_iter), fused_modconv=fused_modconv, gain=np.sqrt(0.5), **layer_kwargs)
             x = y.add_(x)
         else:
@@ -473,7 +473,7 @@ class SynthesisBlock(torch.nn.Module):
                 print(ws_txt.shape)
                 print(self.txt_conv.weight.shape)
                 ws_txt_out = self.txt_conv(ws_txt)
-                x += ws_txt_out
+                x = x + ws_txt_out
             x = self.conv1(x, next(w_iter), fused_modconv=fused_modconv, **layer_kwargs)
 
         # ToRGB.
