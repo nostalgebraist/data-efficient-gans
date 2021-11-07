@@ -458,13 +458,13 @@ class SynthesisBlock(torch.nn.Module):
                 w_gates = torch.sigmoid(w_gates)
                 w_gates = w_gates.transpose(1, 3)
                 x_gated = self.txt_gated_conv(x)
-                ws_txt_out = x_gated * 0. # * w_gates
-                x = x + ws_txt_out
+                ws_txt_out = x_gated * w_gates
+                x = 0.5*x + 0.5*ws_txt_out
 
                 # ws_txt = ws_txt.to(dtype=dtype, memory_format=memory_format)
                 # ws_txt = ws_txt.transpose(1, 3)
                 # ws_txt_out = self.txt_conv(ws_txt)
-                # x = x + ws_txt_out
+                # x = 0.5*x + 0.5*ws_txt_out
             x = self.conv1(x, next(w_iter), fused_modconv=fused_modconv, **layer_kwargs)
         elif self.architecture == 'resnet':
             y = self.skip(x, gain=np.sqrt(0.5))
@@ -478,8 +478,8 @@ class SynthesisBlock(torch.nn.Module):
                 w_gates = torch.sigmoid(w_gates)
                 w_gates = w_gates.transpose(1, 3)
                 x_gated = self.txt_gated_conv(x)
-                ws_txt_out = x_gated * 0. # * w_gates
-                x = x + ws_txt_out
+                ws_txt_out = x_gated * w_gates
+                x = 0.5*x + 0.5*ws_txt_out
             x = self.conv1(x, next(w_iter), fused_modconv=fused_modconv, gain=np.sqrt(0.5), **layer_kwargs)
             x = y.add_(x)
         else:
@@ -493,8 +493,8 @@ class SynthesisBlock(torch.nn.Module):
                 w_gates = torch.sigmoid(w_gates)
                 w_gates = w_gates.transpose(1, 3)
                 x_gated = self.txt_gated_conv(x)
-                ws_txt_out = x_gated * 0. # * w_gates
-                x = x + ws_txt_out
+                ws_txt_out = x_gated * w_gates
+                x = 0.5*x + 0.5*ws_txt_out
             x = self.conv1(x, next(w_iter), fused_modconv=fused_modconv, **layer_kwargs)
 
         # ToRGB.
@@ -853,8 +853,8 @@ class DiscriminatorBlock(torch.nn.Module):
                 w_gates = torch.sigmoid(w_gates)
                 w_gates = w_gates.transpose(1, 3)
                 x_gated = self.txt_gated_conv(x)
-                ws_txt_out = x_gated * 0. # * w_gates
-                x = x + ws_txt_out
+                ws_txt_out = x_gated * w_gates
+                x = 0.5*x + 0.5*ws_txt_out
             elif self.use_ws:
                 x = self.conv0(x, w)
             else:
@@ -872,8 +872,8 @@ class DiscriminatorBlock(torch.nn.Module):
                 w_gates = torch.sigmoid(w_gates)
                 w_gates = w_gates.transpose(1, 3)
                 x_gated = self.txt_gated_conv(x)
-                ws_txt_out = x_gated * 0. # * w_gates
-                x = x + ws_txt_out
+                ws_txt_out = x_gated * w_gates
+                x = 0.5*x + 0.5*ws_txt_out
             elif self.use_ws:
                 x = self.conv0(x, w)
             else:
