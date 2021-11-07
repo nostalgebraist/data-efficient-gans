@@ -118,6 +118,7 @@ def training_loop(
     allow_tf32              = False,    # Enable torch.backends.cuda.matmul.allow_tf32 and torch.backends.cudnn.allow_tf32?
     abort_fn                = None,     # Callback function for determining whether to abort training. Must return consistent results across ranks.
     progress_fn             = None,     # Callback function for updating training progress. Called for all ranks.
+    amp = False,
 ):
     # Initialize.
     start_time = time.time()
@@ -299,7 +300,8 @@ def training_loop(
                 for param in phase.module.parameters():
                     if param.grad is not None:
                         misc.nan_to_num(param.grad, nan=0, posinf=1e5, neginf=-1e5, out=param.grad)
-                phase.opt.step()
+                loss.scaler.step(phase.opt)
+                loss.scaler.update()
             if phase.end_event is not None:
                 phase.end_event.record(torch.cuda.current_stream(device))
 

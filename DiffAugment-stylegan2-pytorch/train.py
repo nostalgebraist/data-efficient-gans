@@ -65,6 +65,7 @@ def setup_training_loop_kwargs(
     text_depth       = None,
     z_dim            = None,
     use_ws           = None,
+    amp              = False,
 
     # Discriminator augmentation.
     diffaugment= None, # Comma-separated list of DiffAugment policy, default = 'color,translation,cutout'
@@ -264,7 +265,7 @@ def setup_training_loop_kwargs(
 
     args.G_opt_kwargs = dnnlib.EasyDict(class_name='torch.optim.Adam', lr=spec.lrate, betas=[0,0.99], eps=1e-8)
     args.D_opt_kwargs = dnnlib.EasyDict(class_name='torch.optim.Adam', lr=spec.lrate, betas=[0,0.99], eps=1e-8)
-    args.loss_kwargs = dnnlib.EasyDict(class_name='training.loss.StyleGAN2Loss', r1_gamma=spec.gamma)
+    args.loss_kwargs = dnnlib.EasyDict(class_name='training.loss.StyleGAN2Loss', r1_gamma=spec.gamma, use_amp=amp)
 
     args.total_kimg = spec.kimg
     args.batch_size = spec.mb
@@ -535,6 +536,7 @@ class CommaSeparatedList(click.ParamType):
 @click.option('--text-depth', type=int)
 @click.option('--z-dim', type=int)
 @click.option('--use-ws', type=bool, metavar='BOOL')
+@click.option('--amp', type=bool, metavar='BOOL')
 
 # Discriminator augmentation.
 @click.option('--DiffAugment', help='Comma-separated list of DiffAugment policy [default: color,translation,cutout]', type=str)
