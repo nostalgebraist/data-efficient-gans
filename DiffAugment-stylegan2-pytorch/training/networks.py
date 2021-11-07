@@ -241,7 +241,7 @@ class MappingNetwork(torch.nn.Module):
             # Update moving average of W.
             if self.w_avg_beta is not None and self.training and not skip_w_avg_update:
                 with torch.autograd.profiler.record_function('update_w_avg'):
-                    self.w_avg.copy_(x.detach().mean(dim=0).lerp(self.w_avg, self.w_avg_beta))
+                    self.w_avg.copy_(x.detach().mean(dim=0).to(self.w_avg.dtype).lerp(self.w_avg, self.w_avg_beta))
 
         if txt is not None:
             # TODO: do this after truncate
