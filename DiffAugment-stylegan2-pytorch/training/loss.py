@@ -70,7 +70,7 @@ class StyleGAN2Loss(Loss):
                         cutoff = torch.where(torch.rand([], device=ws.device) < self.style_mixing_prob, cutoff, torch.full_like(cutoff, ws.shape[1]))
                         ws[:, cutoff:] = self.G_mapping(torch.randn_like(z), c, skip_w_avg_update=True)[:, cutoff:]
             with misc.ddp_sync(self.G_synthesis, sync):
-                img = self.G_synthesis(ws)
+                img = self.G_synthesis(ws, autocasting=self.use_amp)
         return img, ws
 
     def run_D(self, img, c, txt, sync):
@@ -80,7 +80,7 @@ class StyleGAN2Loss(Loss):
             img = self.augment_pipe(img)
         with misc.ddp_sync(self.D, sync):
             with torch.cuda.amp.autocast(enabled=self.use_amp):
-                logits = self.D(img, c, txt)
+                logits = self.D(img, c, txt, autocasting=self.use_amp)
         return logits
 
     def accumulate_gradients(self, phase, real_img, real_c, gen_z, gen_c, sync, gain, real_txt=None):
