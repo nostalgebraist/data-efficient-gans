@@ -458,7 +458,7 @@ class SynthesisBlock(torch.nn.Module):
                 w_gates = torch.sigmoid(w_gates)
                 w_gates = w_gates.transpose(1, 3)
                 x_gated = self.txt_gated_conv(x)
-                ws_txt_out = x_gated * w_gates
+                ws_txt_out = x_gated # * w_gates
                 x = x + ws_txt_out
 
                 # ws_txt = ws_txt.to(dtype=dtype, memory_format=memory_format)
@@ -478,7 +478,7 @@ class SynthesisBlock(torch.nn.Module):
                 w_gates = torch.sigmoid(w_gates)
                 w_gates = w_gates.transpose(1, 3)
                 x_gated = self.txt_gated_conv(x)
-                ws_txt_out = x_gated * w_gates
+                ws_txt_out = x_gated # * w_gates
                 x = x + ws_txt_out
             x = self.conv1(x, next(w_iter), fused_modconv=fused_modconv, gain=np.sqrt(0.5), **layer_kwargs)
             x = y.add_(x)
@@ -493,7 +493,7 @@ class SynthesisBlock(torch.nn.Module):
                 w_gates = torch.sigmoid(w_gates)
                 w_gates = w_gates.transpose(1, 3)
                 x_gated = self.txt_gated_conv(x)
-                ws_txt_out = x_gated * w_gates
+                ws_txt_out = x_gated # * w_gates
                 x = x + ws_txt_out
             x = self.conv1(x, next(w_iter), fused_modconv=fused_modconv, **layer_kwargs)
 
