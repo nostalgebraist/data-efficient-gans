@@ -57,10 +57,14 @@ class StyleGAN2Loss(Loss):
         self.use_amp = use_amp
 
         self.G_scaler = FakeScaler()
+        self.Greg_scaler = FakeScaler()
         self.D_scaler = FakeScaler()
+        self.Dreg_scaler = FakeScaler()
         if self.use_amp:
             self.G_scaler = torch.cuda.amp.GradScaler()
+            self.Greg_scaler = torch.cuda.amp.GradScaler()
             self.D_scaler = torch.cuda.amp.GradScaler()
+            self.Dreg_scaler = torch.cuda.amp.GradScaler()
 
     def run_G(self, z, c, txt, sync):
         with torch.cuda.amp.autocast(enabled=self.use_amp):
@@ -112,8 +116,8 @@ class StyleGAN2Loss(Loss):
                 gen_img, gen_ws = self.run_G(gen_z[:batch_size], gen_c[:batch_size], shrink_txt, sync=sync)
                 pl_noise = torch.randn_like(gen_img) / np.sqrt(gen_img.shape[2] * gen_img.shape[3])
                 with torch.autograd.profiler.record_function('pl_grads'), conv2d_gradfix.no_weight_gradients():
-                    pl_grads = torch.autograd.grad(outputs=[self.G_scaler.scale((gen_img * pl_noise).sum())], inputs=[gen_ws], create_graph=True, only_inputs=True)[0]
-                pl_grads = pl_grads / self.G_scaler.get_scale()
+                    pl_grads = torch.autograd.grad(outputs=[self.Greg_scaler.scale((gen_img * pl_noise).sum())], inputs=[gen_ws], create_graph=True, only_inputs=True)[0]
+                pl_grads = pl_grads / self.Greg_scaler.get_scale()
                 pl_lengths = pl_grads.square().sum(2).mean(1).sqrt()
                 pl_mean = self.pl_mean.lerp(pl_lengths.mean().to(self.pl_mean.dtype), self.pl_decay)
                 self.pl_mean.copy_(pl_mean.detach())
@@ -124,7 +128,7 @@ class StyleGAN2Loss(Loss):
                 if not torch.isnan(pl_penalty):
                     training_stats.report('Loss/G/reg', loss_Gpl)
             with torch.autograd.profiler.record_function('Gpl_backward'):
-                self.G_scaler.scale((gen_img[:, 0, 0, 0] * 0 + loss_Gpl).mean().mul(gain)).backward()
+                self.Greg_scaler.scale((gen_img[:, 0, 0, 0] * 0 + loss_Gpl).mean().mul(gain)).backward()
 
         # Dmain: Minimize logits for generated images.
         loss_Dgen = 0
@@ -156,8 +160,8 @@ class StyleGAN2Loss(Loss):
                 loss_Dr1 = 0
                 if do_Dr1:
                     with torch.autograd.profiler.record_function('r1_grads'), conv2d_gradfix.no_weight_gradients():
-                        r1_grads = torch.autograd.grad(outputs=[self.D_scaler.scale(real_logits.sum())], inputs=[real_img_tmp], create_graph=True, only_inputs=True)[0]
-                    r1_grads = r1_grads / self.D_scaler.get_scale()
+                        r1_grads = torch.autograd.grad(outputs=[self.Dreg_scaler.scale(real_logits.sum())], inputs=[real_img_tmp], create_graph=True, only_inputs=True)[0]
+                    r1_grads = r1_grads / self.Dreg_scaler.get_scale()
                     r1_penalty = r1_grads.square().sum([1,2,3])
                     loss_Dr1 = r1_penalty * (self.r1_gamma / 2)
                     if not torch.isnan(r1_penalty):
@@ -165,6 +169,6 @@ class StyleGAN2Loss(Loss):
                         training_stats.report('Loss/D/reg', loss_Dr1)
 
             with torch.autograd.profiler.record_function(name + '_backward'):
-                self.D_scaler.scale((real_logits * 0 + loss_Dreal + loss_Dr1).mean().mul(gain)).backward()
+                self.Dreg_scaler.scale((real_logits * 0 + loss_Dreal + loss_Dr1).mean().mul(gain)).backward()
 
 #----------------------------------------------------------------------------
