@@ -90,7 +90,6 @@ def setup_training_loop_kwargs(
     nobench    = None, # Disable cuDNN benchmarking: <bool>, default = False
     workers    = None, # Override number of DataLoader workers: <int>, default = 3
 ):
-    print(("text_warmup_kimg", text_warmup_kimg))
 
     args = dnnlib.EasyDict()
 
@@ -219,7 +218,7 @@ def setup_training_loop_kwargs(
 
     if text_warmup_kimg is None:
         text_warmup_kimg = 0
-    spec.text_warmup_kimg = text_warmup_kimg
+    args.text_warmup_kimg = text_warmup_kimg
 
     if ema_override is not None:
         spec.ema = ema_override
