@@ -269,6 +269,12 @@ class MappingNetwork(torch.nn.Module):
                     x = self.w_avg.lerp(x, truncation_psi)
                 else:
                     x[:, :truncation_cutoff] = self.w_avg.lerp(x[:, :truncation_cutoff], truncation_psi)
+        print(x.shape)
+        print(ws_txt.shape)
+        print()
+        print(self.z_dim)
+        print(self.w_dim)
+        print(self.text_encoder.w_dim)
         return x, ws_txt
 
 #----------------------------------------------------------------------------
