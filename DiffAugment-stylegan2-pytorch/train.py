@@ -249,7 +249,7 @@ def setup_training_loop_kwargs(
         args.D_kwargs.mapping_kwargs.text_kwargs.inner_dim = text_dim
 
         args.G_kwargs.mapping_kwargs.text_kwargs.depth = text_depth
-        args.G_kwargs.mapping_kwargs.text_kwargs.depth = text_depth
+        args.D_kwargs.mapping_kwargs.text_kwargs.depth = text_depth
 
         args.D_kwargs.cmap_dim = latent_size
 
