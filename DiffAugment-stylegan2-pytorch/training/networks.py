@@ -841,6 +841,7 @@ class Discriminator(torch.nn.Module):
             block = getattr(self, f'b{res}')
             x, img = block(x, img, **block_kwargs)
 
+        # TODO: use txt at lower res somehow
         cmap = None
         if self.mapping is not None:
             cmap = self.mapping(None, c, txt)
