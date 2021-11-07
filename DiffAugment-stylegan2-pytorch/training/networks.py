@@ -630,6 +630,8 @@ class DiscriminatorBlock(torch.nn.Module):
         fp16_channels_last  = False,        # Use channels-last memory format with FP16?
         freeze_layers       = 0,            # Freeze-D: Number of layers to freeze.
         use_bf16            = False,
+        use_ws              = False,
+        w_dim               = 512
     ):
         assert in_channels in [0, tmp_channels]
         assert architecture in ['orig', 'skip', 'resnet']
@@ -642,6 +644,7 @@ class DiscriminatorBlock(torch.nn.Module):
         self.use_fp16 = use_fp16
         self.channels_last = (use_fp16 and fp16_channels_last)
         self.use_bf16 = use_bf16
+        self.use_ws = use_ws
         self.register_buffer('resample_filter', upfirdn2d.setup_filter(resample_filter))
 
         self.num_layers = 0
@@ -657,8 +660,14 @@ class DiscriminatorBlock(torch.nn.Module):
             self.fromrgb = Conv2dLayer(img_channels, tmp_channels, kernel_size=1, activation=activation,
                 trainable=next(trainable_iter), conv_clamp=conv_clamp, channels_last=self.channels_last)
 
-        self.conv0 = Conv2dLayer(tmp_channels, tmp_channels, kernel_size=3, activation=activation,
-            trainable=next(trainable_iter), conv_clamp=conv_clamp, channels_last=self.channels_last)
+        if self.use_ws:
+            self.conv0 = SynthesisLayer(tmp_channels, tmp_channels, w_dim=w_dim, resolution=resolution,
+                                        kernel_size=3, activation=activation,
+                                        trainable=next(trainable_iter),
+                                        conv_clamp=conv_clamp, channels_last=self.channels_last)
+        else:
+            self.conv0 = Conv2dLayer(tmp_channels, tmp_channels, kernel_size=3, activation=activation,
+                trainable=next(trainable_iter), conv_clamp=conv_clamp, channels_last=self.channels_last)
 
         self.conv1 = Conv2dLayer(tmp_channels, out_channels, kernel_size=3, activation=activation, down=2,
             trainable=next(trainable_iter), resample_filter=resample_filter, conv_clamp=conv_clamp, channels_last=self.channels_last)
@@ -667,7 +676,7 @@ class DiscriminatorBlock(torch.nn.Module):
             self.skip = Conv2dLayer(tmp_channels, out_channels, kernel_size=1, bias=False, down=2,
                 trainable=next(trainable_iter), resample_filter=resample_filter, channels_last=self.channels_last)
 
-    def forward(self, x, img, force_fp32=False):
+    def forward(self, x, img, w=None, force_fp32=False):
         dtype = torch.float16 if self.use_fp16 and not force_fp32 else torch.float32
         if self.use_bf16:
             dtype = torch.bfloat16
@@ -689,11 +698,17 @@ class DiscriminatorBlock(torch.nn.Module):
         # Main layers.
         if self.architecture == 'resnet':
             y = self.skip(x, gain=np.sqrt(0.5))
-            x = self.conv0(x)
+            if self.use_ws:
+                x = self.conv0(x, w)
+            else:
+                x = self.conv0(x)
             x = self.conv1(x, gain=np.sqrt(0.5))
             x = y.add_(x)
         else:
-            x = self.conv0(x)
+            if self.use_ws:
+                x = self.conv0(x, w)
+            else:
+                x = self.conv0(x)
             x = self.conv1(x)
 
         assert x.dtype == dtype
@@ -802,7 +817,8 @@ class Discriminator(torch.nn.Module):
         mapping_kwargs      = {},       # Arguments for MappingNetwork.
         epilogue_kwargs     = {},       # Arguments for DiscriminatorEpilogue.
         use_text_encoder    = False,
-        text_kwargs         = {}
+        text_kwargs         = {},
+        use_ws              = False
     ):
         super().__init__()
         self.c_dim = c_dim
@@ -815,10 +831,11 @@ class Discriminator(torch.nn.Module):
 
         if cmap_dim is None:
             cmap_dim = channels_dict[4]
-        if c_dim == 0 and not use_text_encoder:
+        if c_dim == 0 and ((not use_text_encoder) or use_ws):
             cmap_dim = 0
 
-        common_kwargs = dict(img_channels=img_channels, architecture=architecture, conv_clamp=conv_clamp)
+        common_kwargs = dict(img_channels=img_channels, architecture=architecture, conv_clamp=conv_clamp,
+                             use_ws=use_ws)
         cur_layer_idx = 0
         for res in self.block_resolutions:
             in_channels = channels_dict[res] if res < img_resolution else 0
@@ -829,21 +846,46 @@ class Discriminator(torch.nn.Module):
                 first_layer_idx=cur_layer_idx, use_fp16=use_fp16, use_bf16=use_bf16, **block_kwargs, **common_kwargs)
             setattr(self, f'b{res}', block)
             cur_layer_idx += block.num_layers
+
+        self.num_ws = None
         if c_dim > 0 or use_text_encoder:
-            self.mapping = MappingNetwork(z_dim=0, c_dim=c_dim, w_dim=cmap_dim, num_ws=None, w_avg_beta=None, use_text_encoder=use_text_encoder, **mapping_kwargs)
+            if use_ws:
+                self.num_ws = len(self.block_resolutions)
+            self.mapping = MappingNetwork(
+                z_dim=0, c_dim=c_dim, w_dim=cmap_dim,
+                num_ws=self.num_ws,
+                w_avg_beta=None,
+                use_text_encoder=use_text_encoder,
+                **mapping_kwargs)
         else:
             self.mapping = None
         self.b4 = DiscriminatorEpilogue(channels_dict[4], cmap_dim=cmap_dim, resolution=4, **epilogue_kwargs, **common_kwargs)
 
     def forward(self, img, c, txt=None, **block_kwargs):
         x = None
-        for res in self.block_resolutions:
+
+        if self.mapping is not None and self.use_ws:
+            ws = self.mapping(None, c, txt)
+
+            block_ws = []
+            with torch.autograd.profiler.record_function('split_ws'):
+                misc.assert_shape(ws, [None, self.num_ws, self.cmap_dim])
+                ws = ws.to(torch.float32)
+                w_idx = 0
+                for res in self.block_resolutions:
+                    block = getattr(self, f'b{res}')
+                    block_ws.append(ws.narrow(1, w_idx, block.num_conv + block.num_torgb))
+                    w_idx += block.num_conv
+        else:
+            block_ws = [None for _ in self.block_resolutions]
+
+        for res, cur_ws in zip(self.block_resolutions, block_ws):
             block = getattr(self, f'b{res}')
-            x, img = block(x, img, **block_kwargs)
+            x, img = block(x, img, cur_ws, **block_kwargs)
 
         # TODO: use txt at lower res somehow
         cmap = None
-        if self.mapping is not None:
+        if self.mapping is not None and not self.use_ws:
             cmap = self.mapping(None, c, txt)
         x = self.b4(x, img, cmap)
         return x
