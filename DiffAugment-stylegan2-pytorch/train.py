@@ -66,7 +66,7 @@ def setup_training_loop_kwargs(
     z_dim            = None,
     use_ws           = None,
     amp              = False,
-    text_warmup_kimg = 0,
+    text_warmup_kimg = None,
     text_concat      = False,
     text_lr          = None,
     text_momentum    = None,
@@ -215,6 +215,8 @@ def setup_training_loop_kwargs(
         spec.gamma = 0.0002 * (res ** 2) / spec.mb # heuristic formula
         # spec.ema = spec.mb * 10 / 32
 
+    if text_warmup_kimg is None:
+        text_warmup_kimg = 0
     spec.text_warmup_kimg = text_warmup_kimg
 
     if ema_override is not None:
