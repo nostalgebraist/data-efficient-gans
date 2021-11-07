@@ -415,10 +415,10 @@ class SynthesisBlock(torch.nn.Module):
                 out_channels, out_channels, kernel_size=3, bias=True,
                 up=up, down=down,
                 resample_filter=resample_filter, channels_last=self.channels_last,
-                activation=activation
+                activation=layer_kwargs.get('activation', 'lrelu')
             )
             self.txt_gated_conv = Conv2dLayer(
-                out_channels, out_channels, kernel_size=3, activation=activation,
+                out_channels, out_channels, kernel_size=3, activation=layer_kwargs.get('activation', 'lrelu'),
                 conv_clamp=conv_clamp, channels_last=self.channels_last
             )
 
