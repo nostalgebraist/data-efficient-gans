@@ -874,7 +874,7 @@ class Discriminator(torch.nn.Module):
                 w_idx = 0
                 for res in self.block_resolutions:
                     block = getattr(self, f'b{res}')
-                    block_ws.append(ws.narrow(1, w_idx, block.num_conv + block.num_torgb))
+                    block_ws.append(ws.narrow(1, w_idx, 1))
                     w_idx += block.num_conv
         else:
             block_ws = [None for _ in self.block_resolutions]
