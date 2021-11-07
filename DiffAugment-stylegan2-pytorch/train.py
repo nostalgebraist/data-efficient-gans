@@ -66,6 +66,7 @@ def setup_training_loop_kwargs(
     z_dim            = None,
     use_ws           = None,
     amp              = False,
+    text_warmup_kimg = 0,
 
     # Discriminator augmentation.
     diffaugment= None, # Comma-separated list of DiffAugment policy, default = 'color,translation,cutout'
@@ -209,6 +210,8 @@ def setup_training_loop_kwargs(
             spec.lrate = 0.002 if res >= 1024 else 0.0025
         spec.gamma = 0.0002 * (res ** 2) / spec.mb # heuristic formula
         # spec.ema = spec.mb * 10 / 32
+
+    spec.text_warmup_kimg = text_warmup_kimg
 
     if ema_override is not None:
         spec.ema = ema_override
@@ -537,6 +540,7 @@ class CommaSeparatedList(click.ParamType):
 @click.option('--z-dim', type=int)
 @click.option('--use-ws', type=bool, metavar='BOOL')
 @click.option('--amp', type=bool, metavar='BOOL')
+@click.option('--text-warmup-kimg', type=int)
 
 # Discriminator augmentation.
 @click.option('--DiffAugment', help='Comma-separated list of DiffAugment policy [default: color,translation,cutout]', type=str)

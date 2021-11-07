@@ -119,6 +119,7 @@ def training_loop(
     abort_fn                = None,     # Callback function for determining whether to abort training. Must return consistent results across ranks.
     progress_fn             = None,     # Callback function for updating training progress. Called for all ranks.
     amp = False,
+    text_warmup_kimg        = 0,
 ):
     # Initialize.
     start_time = time.time()
@@ -289,11 +290,13 @@ def training_loop(
             phase.opt.zero_grad(set_to_none=True)
             phase.module.requires_grad_(True)
 
+            txt_gain = min(1., cur_nimg / max(1., 1000. * text_warmup_kimg))
+
             # Accumulate gradients over multiple rounds.
             for round_idx, (real_img, real_c, gen_z, gen_c, real_txt) in enumerate(zip(phase_real_img, phase_real_c, phase_gen_z, phase_gen_c, phase_real_txt)):
                 sync = (round_idx == batch_size // (batch_gpu * num_gpus) - 1)
                 gain = phase.interval
-                loss.accumulate_gradients(phase=phase.name, real_img=real_img, real_c=real_c, gen_z=gen_z, gen_c=gen_c, sync=sync, gain=gain, real_txt=real_txt)
+                loss.accumulate_gradients(phase=phase.name, real_img=real_img, real_c=real_c, gen_z=gen_z, gen_c=gen_c, sync=sync, gain=gain, real_txt=real_txt, txt_gain=txt_gain)
 
             # Update weights.
             phase.module.requires_grad_(False)

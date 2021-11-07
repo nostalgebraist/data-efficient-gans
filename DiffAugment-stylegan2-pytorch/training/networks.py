@@ -243,15 +243,18 @@ class MappingNetwork(torch.nn.Module):
                 with torch.autograd.profiler.record_function('update_w_avg'):
                     self.w_avg.copy_(x.detach().mean(dim=0).to(self.w_avg.dtype).lerp(self.w_avg, self.w_avg_beta))
 
+        ws_txt = None
         if txt is not None:
             # TODO: do this after truncate
             ws_txt = self.text_encoder(txt)
-            x = x + ws_txt if x is not None else ws_txt
+            # x = x + ws_txt if x is not None else ws_txt
 
         # Broadcast.
         if self.num_ws is not None:
             with torch.autograd.profiler.record_function('broadcast'):
                 x = x.unsqueeze(1).repeat([1, self.num_ws, 1])
+                if ws_txt is not None:
+                    ws_txt = ws_txt.unsqueeze(1).repeat([1, self.num_ws, 1])
 
         # Apply truncation.
         if truncation_psi != 1:
@@ -261,7 +264,7 @@ class MappingNetwork(torch.nn.Module):
                     x = self.w_avg.lerp(x, truncation_psi)
                 else:
                     x[:, :truncation_cutoff] = self.w_avg.lerp(x[:, :truncation_cutoff], truncation_psi)
-        return x
+        return x, ws_txt
 
 #----------------------------------------------------------------------------
 
@@ -483,16 +486,19 @@ class SynthesisNetwork(torch.nn.Module):
                 self.num_ws += block.num_torgb
             setattr(self, f'b{res}', block)
 
-    def forward(self, ws, autocasting=False, **block_kwargs):
+    def forward(self, ws, ws_txt, txt_gain=1., autocasting=False, **block_kwargs):
         block_ws = []
         with torch.autograd.profiler.record_function('split_ws'):
             misc.assert_shape(ws, [None, self.num_ws, self.w_dim])
             if not autocasting:
                 ws = ws.to(torch.float32)
+                ws_txt = ws_txt.to(torch.float32)
             w_idx = 0
             for res in self.block_resolutions:
                 block = getattr(self, f'b{res}')
-                block_ws.append(ws.narrow(1, w_idx, block.num_conv + block.num_torgb))
+                block_w = ws.narrow(1, w_idx, block.num_conv + block.num_torgb)
+                block_w += txt_gain * ws_txt.narrow(1, w_idx, block.num_conv + block.num_torgb)
+                block_ws.append(block_w)
                 w_idx += block.num_conv
 
         x = img = None
@@ -615,10 +621,10 @@ class Generator(torch.nn.Module):
         self.mapping = MappingNetwork(z_dim=z_dim, c_dim=c_dim, w_dim=w_dim, num_ws=self.num_ws,
                                       **mapping_kwargs)
 
-    def forward(self, z, c, txt=None, autocasting=False, truncation_psi=1, truncation_cutoff=None, **synthesis_kwargs):
-        ws = self.mapping(z, c, txt, truncation_psi=truncation_psi, truncation_cutoff=truncation_cutoff)
+    def forward(self, z, c, txt=None, txt_gain=1., autocasting=False, truncation_psi=1, truncation_cutoff=None, **synthesis_kwargs):
+        ws, ws_txt = self.mapping(z, c, txt, truncation_psi=truncation_psi, truncation_cutoff=truncation_cutoff)
 
-        img = self.synthesis(ws, autocasting=autocasting, **synthesis_kwargs)
+        img = self.synthesis(ws, ws_txt, txt_gain=txt_gain, autocasting=autocasting, **synthesis_kwargs)
         return img
 
 #----------------------------------------------------------------------------
@@ -879,18 +885,19 @@ class Discriminator(torch.nn.Module):
             self.mapping = None
         self.b4 = DiscriminatorEpilogue(channels_dict[4], cmap_dim=0 if self.use_ws else cmap_dim, resolution=4, **epilogue_kwargs, **common_kwargs)
 
-    def forward(self, img, c, txt=None, **block_kwargs):
+    def forward(self, img, c, txt=None, txt_gain=1., **block_kwargs):
         x = None
 
         if self.mapping is not None and self.use_ws:
-            ws = self.mapping(None, c, txt)
+            _, ws = self.mapping(None, c, txt)
 
             block_ws = []
             with torch.autograd.profiler.record_function('split_ws'):
                 ws = ws.to(torch.float32)
                 for w_idx, res in enumerate(self.block_resolutions):
                     block = getattr(self, f'b{res}')
-                    block_ws.append(ws[:, w_idx, :])
+                    block_w = txt_gain * ws[:, w_idx, :]
+                    block_ws.append(block_w)
         else:
             block_ws = [None for _ in self.block_resolutions]
 
@@ -901,7 +908,7 @@ class Discriminator(torch.nn.Module):
         # TODO: use txt at lower res somehow
         cmap = None
         if self.mapping is not None and not self.use_ws:
-            cmap = self.mapping(None, c, txt)
+            cmap, _ = self.mapping(None, c, txt)
         x = self.b4(x, img, cmap)
         return x
 
