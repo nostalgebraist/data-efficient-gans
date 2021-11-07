@@ -412,9 +412,10 @@ class SynthesisBlock(torch.nn.Module):
         if self.use_encoder_decoder:
             down = max(1, w_txt_res // self.resolution)
             up   = max(1, self.resolution // w_txt_res)
+            print((up, down, w_txt_res, self.resolution))
             self.txt_gate = torch.nn.Linear(w_txt_dim, out_channels)
             self.txt_resample = Conv2dLayer(
-                w_txt_dim, w_txt_dim, kernel_size=1, bias=True,
+                w_txt_dim, w_txt_dim, kernel_size=3, bias=True,
                 up=up, down=down,
                 resample_filter=resample_filter, channels_last=self.channels_last,
                 activation='linear'
@@ -460,8 +461,6 @@ class SynthesisBlock(torch.nn.Module):
                 w_gates = torch.sigmoid(w_gates).to(dtype)
                 w_gates = w_gates.transpose(1, 3)
                 x_gated = self.txt_gated_conv(x, gain=np.sqrt(0.5))
-                print(x_gated.shape)
-                print(w_gates.shape)
                 ws_txt_out = x_gated * w_gates
                 x = x + ws_txt_out
 
