@@ -118,9 +118,11 @@ class StyleGAN2Loss(Loss):
                 pl_mean = self.pl_mean.lerp(pl_lengths.mean().to(self.pl_mean.dtype), self.pl_decay)
                 self.pl_mean.copy_(pl_mean.detach())
                 pl_penalty = (pl_lengths - pl_mean).square()
-                training_stats.report('Loss/pl_penalty', pl_penalty)
+                if not torch.isnan(pl_penalty):
+                    training_stats.report('Loss/pl_penalty', pl_penalty)
                 loss_Gpl = pl_penalty * self.pl_weight
-                training_stats.report('Loss/G/reg', loss_Gpl)
+                if not torch.isnan(pl_penalty):
+                    training_stats.report('Loss/G/reg', loss_Gpl)
             with torch.autograd.profiler.record_function('Gpl_backward'):
                 self.G_scaler.scale((gen_img[:, 0, 0, 0] * 0 + loss_Gpl).mean().mul(gain)).backward()
 
@@ -158,8 +160,9 @@ class StyleGAN2Loss(Loss):
                     r1_grads = r1_grads / self.D_scaler.get_scale()
                     r1_penalty = r1_grads.square().sum([1,2,3])
                     loss_Dr1 = r1_penalty * (self.r1_gamma / 2)
-                    training_stats.report('Loss/r1_penalty', r1_penalty)
-                    training_stats.report('Loss/D/reg', loss_Dr1)
+                    if not torch.isnan(r1_penalty):
+                        training_stats.report('Loss/r1_penalty', r1_penalty)
+                        training_stats.report('Loss/D/reg', loss_Dr1)
 
             with torch.autograd.profiler.record_function(name + '_backward'):
                 self.D_scaler.scale((real_logits * 0 + loss_Dreal + loss_Dr1).mean().mul(gain)).backward()
