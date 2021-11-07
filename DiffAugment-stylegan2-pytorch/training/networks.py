@@ -452,7 +452,7 @@ class SynthesisBlock(torch.nn.Module):
             if self.use_encoder_decoder:
                 ws_txt = ws_txt.to(dtype=dtype, memory_format=memory_format)
                 w_gates = self.txt_gate(ws_txt)
-                w_gates = torch.nn.functional.sigmoid(w_gates)
+                w_gates = torch.sigmoid(w_gates)
                 w_gates = w_gates.transpose(1, 3)
                 w_gates_resampled = self.txt_resample(w_gates)
                 x_gated = self.txt_gated_conv(x)
@@ -470,7 +470,7 @@ class SynthesisBlock(torch.nn.Module):
             if self.use_encoder_decoder:
                 ws_txt = ws_txt.to(dtype=dtype, memory_format=memory_format)
                 w_gates = self.txt_gate(ws_txt)
-                w_gates = torch.nn.functional.sigmoid(w_gates)
+                w_gates = torch.sigmoid(w_gates)
                 w_gates = w_gates.transpose(1, 3)
                 w_gates_resampled = self.txt_resample(w_gates)
                 x_gated = self.txt_gated_conv(x)
@@ -483,7 +483,7 @@ class SynthesisBlock(torch.nn.Module):
             if self.use_encoder_decoder:
                 ws_txt = ws_txt.to(dtype=dtype, memory_format=memory_format)
                 w_gates = self.txt_gate(ws_txt)
-                w_gates = torch.nn.functional.sigmoid(w_gates)
+                w_gates = torch.sigmoid(w_gates)
                 w_gates = w_gates.transpose(1, 3)
                 w_gates_resampled = self.txt_resample(w_gates)
                 x_gated = self.txt_gated_conv(x)
@@ -841,7 +841,7 @@ class DiscriminatorBlock(torch.nn.Module):
                 x = self.conv0(x)
                 w = w.to(dtype=dtype, memory_format=memory_format)
                 w_gates = self.txt_gate(w)
-                w_gates = torch.nn.functional.sigmoid(w_gates)
+                w_gates = torch.sigmoid(w_gates)
                 w_gates = w_gates.transpose(1, 3)
                 w_gates_resampled = self.txt_resample(w_gates)
                 x_gated = self.txt_gated_conv(x)
