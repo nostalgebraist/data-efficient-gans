@@ -414,13 +414,14 @@ class SynthesisBlock(torch.nn.Module):
             down = max(1, w_txt_res // self.resolution)
             up   = max(1, self.resolution // w_txt_res)
             self.txt_resample = Conv2dLayer(
-                w_txt_dim, out_channels, kernel_size=1, bias=True,
+                w_txt_dim, out_channels // 2, kernel_size=1, bias=True,
                 up=up, down=down,
                 resample_filter=resample_filter, channels_last=self.channels_last,
                 activation='linear'
             )
+            self.pre_gate_proj = FullyConnectedLayer(out_channels, out_channels // 2, activation='linear')
             self.txt_gated_conv = Conv2dLayer(
-                2*out_channels, 2*out_channels, kernel_size=3, activation='linear',
+                out_channels, out_channels, kernel_size=3, activation='linear',
                 conv_clamp=conv_clamp, channels_last=self.channels_last
             )
 
@@ -455,7 +456,8 @@ class SynthesisBlock(torch.nn.Module):
                 ws_txt = ws_txt.to(dtype=dtype, memory_format=memory_format)
                 ws_txt = ws_txt.transpose(1, 3)
                 w_resampled = self.txt_resample(ws_txt)
-                xw = torch.cat([x, w_resampled], dim=1)
+                x_down = self.pre_gate_proj(x)
+                xw = torch.cat([x_down, w_resampled], dim=1)
                 xw = self.txt_gated_conv(xw)
                 x = torch.nn.functional.glu(xw, dim=1)
             else:
@@ -470,7 +472,8 @@ class SynthesisBlock(torch.nn.Module):
                 ws_txt = ws_txt.to(dtype=dtype, memory_format=memory_format)
                 ws_txt = ws_txt.transpose(1, 3)
                 w_resampled = self.txt_resample(ws_txt)
-                xw = torch.cat([x, w_resampled], dim=1)
+                x_down = self.pre_gate_proj(x)
+                xw = torch.cat([x_down, w_resampled], dim=1)
                 xw = self.txt_gated_conv(xw)
                 x = torch.nn.functional.glu(xw, dim=1)
             else:
@@ -485,7 +488,8 @@ class SynthesisBlock(torch.nn.Module):
                 ws_txt = ws_txt.to(dtype=dtype, memory_format=memory_format)
                 ws_txt = ws_txt.transpose(1, 3)
                 w_resampled = self.txt_resample(ws_txt)
-                xw = torch.cat([x, w_resampled], dim=1)
+                x_down = self.pre_gate_proj(x)
+                xw = torch.cat([x_down, w_resampled], dim=1)
                 xw = self.txt_gated_conv(xw)
                 x = torch.nn.functional.glu(xw, dim=1)
             else:
