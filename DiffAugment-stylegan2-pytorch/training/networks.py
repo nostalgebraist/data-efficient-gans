@@ -851,9 +851,7 @@ class DiscriminatorBlock(torch.nn.Module):
 
         # Main layers.
         if self.architecture == 'resnet':
-            print(x.shape)
             y = self.skip(x, gain=np.sqrt(0.5))
-            print(y.shape)
             if self.use_ws and not self.use_encoder_decoder:
                 x = self.conv0(x, w)
             else:
@@ -865,9 +863,7 @@ class DiscriminatorBlock(torch.nn.Module):
                 x_down = self.pre_gate_proj(x)
                 xw = torch.cat([x_down, w_resampled], dim=1)
                 xw = self.txt_gated_conv(xw)
-                print(xw.shape)
                 x = torch.nn.functional.glu(xw, dim=1)
-                print(x.shape)
             else:
                 x = self.conv1(x, gain=np.sqrt(0.5))
             x = y.add_(x)
