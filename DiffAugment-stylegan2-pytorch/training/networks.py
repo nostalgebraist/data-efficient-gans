@@ -367,7 +367,7 @@ class CrossAttention(torch.nn.Module):
         heads,
         text_dim=512,
         clamp=None,
-        init_gain=1e-1
+        init_gain=1e-2
     ):
         super().__init__()
         self.dim = dim
