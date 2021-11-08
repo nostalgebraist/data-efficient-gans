@@ -424,7 +424,7 @@ class SynthesisBlock(torch.nn.Module):
                                              activation='linear',
                                              conv_clamp=conv_clamp, channels_last=self.channels_last)
             self.txt_gated_conv = Conv2dLayer(
-                out_channels, out_channels, kernel_size=3, activation='linear',
+                out_channels, 2*out_channels, kernel_size=3, activation='linear',
                 conv_clamp=conv_clamp, channels_last=self.channels_last
             )
 
