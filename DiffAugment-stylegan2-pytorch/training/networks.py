@@ -15,6 +15,8 @@ from torch_utils.ops import upfirdn2d
 from torch_utils.ops import bias_act
 from torch_utils.ops import fma
 
+from einops import rearrange
+
 #----------------------------------------------------------------------------
 
 @misc.profiled_function
@@ -349,6 +351,33 @@ class ToRGBLayer(torch.nn.Module):
 
 #----------------------------------------------------------------------------
 
+from axial_positional_embedding import AxialPositionalEmbedding
+
+@persistence.persistent_class
+class CrossAttention(torch.nn.Module):
+    def __init__(
+        self,
+        dim,
+        heads
+    ):
+        super().__init__()
+        self.dim = dim
+        self.heads = heads
+
+        self.q = torch.nn.Linear(self.dim, self.dim, bias=False)
+        self.kv = torch.nn.Linear(self.dim, 2*self.dim, bias=False)
+        self.attn = torch.nn.MultiheadAttention(self.dim, self.heads, batch_first=True)
+
+    def forward(self, src, tgt):
+        q = self.q(tgt)
+        kv = self.kv(src)
+
+        k, v = kv.chunk(2)
+
+        attn_output = self.attn(q, k, v, need_weights=False)
+        return attn_output
+
+
 @persistence.persistent_class
 class SynthesisBlock(torch.nn.Module):
     def __init__(self,
@@ -367,6 +396,9 @@ class SynthesisBlock(torch.nn.Module):
         use_encoder_decoder = False,
         w_txt_res           = 32,
         w_txt_dim           = 512,
+        use_cross_attn      = False,
+        cross_attn_heads    = 1,
+        cross_attn_dim       = None  # default: out_channels
         **layer_kwargs,                     # Arguments for SynthesisLayer.
     ):
         assert architecture in ['orig', 'skip', 'resnet']
@@ -406,6 +438,8 @@ class SynthesisBlock(torch.nn.Module):
                 resample_filter=resample_filter, channels_last=self.channels_last)
 
         self.use_encoder_decoder = use_encoder_decoder
+        self.use_cross_attn = use_cross_attn
+
         if self.use_encoder_decoder:
             down = max(1, w_txt_res // self.resolution)
             up   = max(1, self.resolution // w_txt_res)
@@ -415,6 +449,15 @@ class SynthesisBlock(torch.nn.Module):
                 resample_filter=resample_filter, channels_last=self.channels_last,
                 activation='relu'
             )
+
+        if self.use_cross_attn:
+            if cross_attn_dim is None:
+                cross_attn_dim = out_channels
+            self.cross_attn = CrossAttention(dim=cross_attn_dim, heads=cross_attn_heads)
+            self.pos_emb = AxialPositionalEmbedding(dim=out_channels,
+                                                    axial_shape=(self.resolution, self.resolution),
+                                                    axial_dims=(out_channels//2, out_channels//2)
+                                                    )
 
     def forward(self, x, img, ws, ws_txt=None, force_fp32=False, fused_modconv=None, autocasting=False, **layer_kwargs):
         misc.assert_shape(ws, [None, self.num_conv + self.num_torgb, self.w_dim])
@@ -448,6 +491,11 @@ class SynthesisBlock(torch.nn.Module):
                 ws_txt = ws_txt.transpose(1, 3)
                 ws_txt_out = self.txt_conv(ws_txt)
                 x = x + ws_txt_out
+            elif self.use_cross_attn:
+                tgt = rearrange(x, 'b h w c -> b (h w) c', h=x.shape[1])
+                tgt = tgt + self.pos_emb(tgt)
+                attn_out = self.cross_attn(src=ws_txt, tgt=tgt)
+                x = x + attn_out
             x = self.conv1(x, next(w_iter), fused_modconv=fused_modconv, **layer_kwargs)
         elif self.architecture == 'resnet':
             y = self.skip(x, gain=np.sqrt(0.5))
@@ -457,6 +505,11 @@ class SynthesisBlock(torch.nn.Module):
                 ws_txt = ws_txt.transpose(1, 3)
                 ws_txt_out = self.txt_conv(ws_txt)
                 x = x + ws_txt_out
+            elif self.use_cross_attn:
+                tgt = rearrange(x, 'b h w c -> b (h w) c', h=x.shape[1])
+                tgt = tgt + self.pos_emb(tgt)
+                attn_out = self.cross_attn(src=ws_txt, tgt=tgt)
+                x = x + attn_out
             x = self.conv1(x, next(w_iter), fused_modconv=fused_modconv, gain=np.sqrt(0.5), **layer_kwargs)
             x = y.add_(x)
         else:
@@ -466,6 +519,11 @@ class SynthesisBlock(torch.nn.Module):
                 ws_txt = ws_txt.transpose(1, 3)
                 ws_txt_out = self.txt_conv(ws_txt)
                 x = x + ws_txt_out
+            elif self.use_cross_attn:
+                tgt = rearrange(x, 'b h w c -> b (h w) c', h=x.shape[1])
+                tgt = tgt + self.pos_emb(tgt)
+                attn_out = self.cross_attn(src=ws_txt, tgt=tgt)
+                x = x + attn_out
             x = self.conv1(x, next(w_iter), fused_modconv=fused_modconv, **layer_kwargs)
 
         # ToRGB.
@@ -498,6 +556,7 @@ class SynthesisNetwork(torch.nn.Module):
         use_bf16        = False,
         text_concat     = False,
         use_encoder_decoder = False,
+        use_cross_attn  = False,
         **block_kwargs,             # Arguments for SynthesisBlock.
     ):
         assert img_resolution >= 4 and img_resolution & (img_resolution - 1) == 0
@@ -512,6 +571,7 @@ class SynthesisNetwork(torch.nn.Module):
 
         self.text_concat = text_concat
         self.use_encoder_decoder = use_encoder_decoder
+        self.use_cross_attn = use_cross_attn
 
         self.num_ws = 0
         for res in self.block_resolutions:
@@ -522,6 +582,7 @@ class SynthesisNetwork(torch.nn.Module):
             block = SynthesisBlock(in_channels, out_channels, w_dim=w_dim, resolution=res,
                 img_channels=img_channels, is_last=is_last, use_fp16=use_fp16, use_bf16=use_bf16,
                 use_encoder_decoder=use_encoder_decoder,
+                use_cross_attn=use_cross_attn,
                 **block_kwargs)
             self.num_ws += block.num_conv
             if is_last:
@@ -542,13 +603,13 @@ class SynthesisNetwork(torch.nn.Module):
                 block = getattr(self, f'b{res}')
                 block_w = ws.narrow(1, w_idx, block.num_conv + block.num_torgb)
 
-                if self.use_encoder_decoder:
+                if self.use_encoder_decoder or self.use_cross_attn:
                     block_w_txt = txt_gain * ws_txt.narrow(1, w_idx, 1).squeeze(1)
                 else:
                     block_w_txt = txt_gain * ws_txt.narrow(1, w_idx, block.num_conv + block.num_torgb)
 
 
-                if self.use_encoder_decoder:
+                if self.use_encoder_decoder or self.use_cross_attn:
                     pass
                 elif self.text_concat:
                     block_w = torch.cat([block_w,
@@ -570,7 +631,6 @@ class SynthesisNetwork(torch.nn.Module):
 #----------------------------------------------------------------------------
 
 from x_transformers import TransformerWrapper, Encoder, XTransformer
-from einops import rearrange
 
 
 @persistence.persistent_class
