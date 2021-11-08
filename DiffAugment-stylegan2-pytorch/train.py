@@ -72,7 +72,7 @@ def setup_training_loop_kwargs(
     text_momentum    = None,
     use_enc_dec      = None,
     use_cross_attn   = None,
-    cross_attn_G_only = None,
+    cross_attn_g_only = None,
 
     # Discriminator augmentation.
     diffaugment= None, # Comma-separated list of DiffAugment policy, default = 'color,translation,cutout'
@@ -285,7 +285,7 @@ def setup_training_loop_kwargs(
         if use_cross_attn:
             args.G_kwargs.use_cross_attn = True
             args.D_kwargs.use_cross_attn = True
-        if cross_attn_G_only:
+        if cross_attn_g_only:
             args.D_kwargs.use_cross_attn = False
 
         # TODO: was this a good/bad idea?
@@ -575,7 +575,7 @@ class CommaSeparatedList(click.ParamType):
 @click.option('--text-momentum', type=float)
 @click.option('--use-enc-dec', type=bool, metavar='BOOL')
 @click.option('--use-cross-attn', type=bool, metavar='BOOL')
-@click.option('--cross-attn-G-only', type=bool, metavar='BOOL')
+@click.option('--cross-attn-g-only', type=bool, metavar='BOOL')
 
 # Discriminator augmentation.
 @click.option('--DiffAugment', help='Comma-separated list of DiffAugment policy [default: color,translation,cutout]', type=str)
