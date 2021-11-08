@@ -283,6 +283,7 @@ def setup_training_loop_kwargs(
 
         if use_cross_attn:
             args.G_kwargs.use_cross_attn = True
+            args.D_kwargs.use_cross_attn = True
 
         # TODO: was this a good/bad idea?
         # args.D_kwargs.cmap_dim = latent_size
