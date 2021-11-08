@@ -366,7 +366,8 @@ class CrossAttention(torch.nn.Module):
         dim,
         heads,
         text_dim=512,
-        clamp=None
+        clamp=None,
+        init_gain=1e-3
     ):
         super().__init__()
         self.dim = dim
@@ -381,7 +382,7 @@ class CrossAttention(torch.nn.Module):
         self.src_ln = torch.nn.LayerNorm(self.text_dim)
         self.tgt_ln = torch.nn.LayerNorm(self.dim)
 
-        self.gain = torch.nn.Parameter(torch.as_tensor(1.))
+        self.gain = torch.nn.Parameter(torch.as_tensor(init_gain))
 
     def forward(self, src, tgt):
         dtype = tgt.dtype
