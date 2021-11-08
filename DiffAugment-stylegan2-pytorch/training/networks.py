@@ -187,6 +187,7 @@ class MappingNetwork(torch.nn.Module):
         text_kwargs     = {},
         use_encoder_decoder=False,
         text_concat=False,
+        w_txt_res=16,
     ):
         super().__init__()
         self.z_dim = z_dim
@@ -202,7 +203,7 @@ class MappingNetwork(torch.nn.Module):
             if text_concat:
                 text_out_dim = w_dim - z_dim
                 w_dim = self.w_dim = z_dim
-            self.text_encoder = TextEncoder(w_dim=text_out_dim, use_encoder_decoder=use_encoder_decoder, **text_kwargs)
+            self.text_encoder = TextEncoder(w_dim=text_out_dim, use_encoder_decoder=use_encoder_decoder, decoder_sqrt_ntok=w_txt_res, **text_kwargs)
         else:
             self.text_encoder = None
 
@@ -728,6 +729,7 @@ class Generator(torch.nn.Module):
         self.mapping = MappingNetwork(z_dim=z_dim, c_dim=c_dim, w_dim=w_dim, num_ws=self.num_ws,
                                       text_concat=text_concat,
                                       use_encoder_decoder=use_encoder_decoder,
+                                      w_txt_res=w_txt_res,
                                       **mapping_kwargs)
 
     def forward(self, z, c, txt=None, txt_gain=1., autocasting=False, truncation_psi=1, truncation_cutoff=None, **synthesis_kwargs):
