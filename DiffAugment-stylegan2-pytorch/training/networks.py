@@ -375,15 +375,16 @@ class CrossAttention(torch.nn.Module):
         self.attn = torch.nn.MultiheadAttention(self.dim, self.heads, batch_first=True)
 
     def forward(self, src, tgt):
+        dtype = tgt.dtype
         print((src.shape, src.dtype))
         print((tgt.shape, tgt.dtype))
-        q = self.q(tgt)
+        q = self.q(tgt.to(torch.float32))
         kv = self.kv(src)
 
         k, v = kv.chunk(2)
 
         attn_output, attn_output_weights = self.attn(q, k, v)
-        return attn_output
+        return attn_output.to(dtype)
 
 
 @persistence.persistent_class
