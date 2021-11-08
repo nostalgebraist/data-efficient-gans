@@ -462,7 +462,7 @@ class SynthesisBlock(torch.nn.Module):
         if self.use_cross_attn:
             if cross_attn_dim is None:
                 cross_attn_dim = out_channels
-            self.cross_attn = CrossAttention(dim=cross_attn_dim, heads=cross_attn_heads)
+            self.cross_attn = CrossAttention(dim=cross_attn_dim, heads=cross_attn_heads, text_dim=w_txt_dim)
             self.pos_emb = AxialPositionalEmbedding(dim=out_channels,
                                                     axial_shape=(self.resolution, self.resolution),
                                                     axial_dims=(out_channels//2, out_channels//2)
