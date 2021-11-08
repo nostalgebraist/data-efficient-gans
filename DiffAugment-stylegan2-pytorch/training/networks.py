@@ -500,7 +500,7 @@ class SynthesisBlock(torch.nn.Module):
             elif self.use_cross_attn:
                 print(x.shape)
                 print(self.resolution)
-                tgt = rearrange(x, 'b h w c -> b (h w) c', h=x.shape[1])
+                tgt = rearrange(x, 'b c h w -> b (h w) c', h=x.shape[2])
                 tgt = tgt + self.pos_emb(tgt)
                 attn_out = self.cross_attn(src=ws_txt, tgt=tgt)
                 x = x + attn_out
