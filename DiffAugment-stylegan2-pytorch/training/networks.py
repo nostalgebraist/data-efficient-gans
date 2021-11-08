@@ -365,12 +365,14 @@ class CrossAttention(torch.nn.Module):
         self,
         dim,
         heads,
-        text_dim=512
+        text_dim=512,
+        clamp=None
     ):
         super().__init__()
         self.dim = dim
         self.heads = heads
         self.text_dim = text_dim
+        self.clamp = clamp
 
         self.q = torch.nn.Linear(self.dim, self.dim, bias=False)
         self.kv = torch.nn.Linear(self.text_dim, 2*self.dim, bias=False)
@@ -384,6 +386,8 @@ class CrossAttention(torch.nn.Module):
         k, v = kv.chunk(2, dim=-1)
 
         attn_output, attn_output_weights = self.attn(q, k, v)
+        if self.clamp is not None:
+            attn_output = attn_output.clamp(min=-self.clamp, max=self.clamp)
         return attn_output.to(dtype)
 
 
@@ -462,7 +466,10 @@ class SynthesisBlock(torch.nn.Module):
         if self.use_cross_attn:
             if cross_attn_dim is None:
                 cross_attn_dim = out_channels
-            self.cross_attn = CrossAttention(dim=cross_attn_dim, heads=cross_attn_heads, text_dim=w_txt_dim)
+            self.cross_attn = CrossAttention(dim=cross_attn_dim,
+                                             heads=cross_attn_heads,
+                                             text_dim=w_txt_dim,
+                                             clamp=conv_clamp)
             self.pos_emb = AxialPositionalEmbedding(dim=out_channels,
                                                     axial_shape=(self.resolution, self.resolution),
                                                     axial_dims=(out_channels//2, out_channels//2)
@@ -868,7 +875,10 @@ class DiscriminatorBlock(torch.nn.Module):
         if self.use_cross_attn:
             if cross_attn_dim is None:
                 cross_attn_dim = tmp_channels
-            self.cross_attn = CrossAttention(dim=cross_attn_dim, heads=cross_attn_heads, text_dim=w_dim)
+            self.cross_attn = CrossAttention(dim=cross_attn_dim,
+                                             heads=cross_attn_heads,
+                                             text_dim=w_dim,
+                                             clamp=conv_clamp)
             self.pos_emb = AxialPositionalEmbedding(dim=tmp_channels,
                                                     axial_shape=(self.resolution, self.resolution),
                                                     axial_dims=(tmp_channels//2, tmp_channels//2)
