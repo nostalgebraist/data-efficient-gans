@@ -462,6 +462,7 @@ class SynthesisBlock(torch.nn.Module):
                 ws_txt = ws_txt.transpose(1, 3)
                 w_resampled = self.txt_resample(ws_txt)
                 x_down = self.pre_gate_proj(x)
+                print(ws_txt.shape)
                 print(("up down", self.txt_resample.up, self.txt_resample.down))
                 print(x_down.shape)
                 print(w_resampled.shape)
