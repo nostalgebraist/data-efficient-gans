@@ -413,6 +413,7 @@ class SynthesisBlock(torch.nn.Module):
         if self.use_encoder_decoder:
             down = max(1, w_txt_res // self.resolution)
             up   = max(1, self.resolution // w_txt_res)
+            print(("up down", up, down))
             self.txt_resample = Conv2dLayer(
                 w_txt_dim, out_channels // 2, kernel_size=1, bias=False,
                 up=up, down=down,
