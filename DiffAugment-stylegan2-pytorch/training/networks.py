@@ -417,7 +417,6 @@ class SynthesisBlock(torch.nn.Module):
         if self.use_encoder_decoder:
             down = max(1, w_txt_res // self.resolution)
             up   = max(1, self.resolution // w_txt_res)
-            print(("up down", up, down))
             self.txt_resample = Conv2dLayer(
                 w_txt_dim, out_channels // 2, kernel_size=1, bias=False,
                 up=up, down=down,
@@ -466,10 +465,6 @@ class SynthesisBlock(torch.nn.Module):
                 ws_txt = ws_txt.transpose(1, 3)
                 w_resampled = self.txt_resample(ws_txt)
                 x_down = self.pre_gate_proj(x)
-                print(ws_txt.shape)
-                print(("up down", self.txt_resample.up, self.txt_resample.down))
-                print(x_down.shape)
-                print(w_resampled.shape)
                 xw = torch.cat([x_down, w_resampled], dim=1)
                 xw = self.txt_gated_conv(xw)
                 x = torch.nn.functional.glu(xw, dim=1)
