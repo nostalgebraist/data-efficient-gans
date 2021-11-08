@@ -375,6 +375,8 @@ class CrossAttention(torch.nn.Module):
         self.attn = torch.nn.MultiheadAttention(self.dim, self.heads, batch_first=True)
 
     def forward(self, src, tgt):
+        print((src.shape, src.dtype))
+        print((tgt.shape, tgt.dtype))
         q = self.q(tgt)
         kv = self.kv(src)
 
