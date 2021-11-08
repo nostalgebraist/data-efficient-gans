@@ -404,7 +404,7 @@ class SynthesisBlock(torch.nn.Module):
         w_txt_dim           = 512,
         use_cross_attn      = False,
         cross_attn_heads    = 1,
-        cross_attn_dim       = None  # default: out_channels
+        cross_attn_dim       = None,  # default: out_channels
         **layer_kwargs,                     # Arguments for SynthesisLayer.
     ):
         assert architecture in ['orig', 'skip', 'resnet']
