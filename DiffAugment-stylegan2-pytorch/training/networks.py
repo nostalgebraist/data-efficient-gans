@@ -383,6 +383,9 @@ class CrossAttention(torch.nn.Module):
 
         k, v = kv.chunk(2, dim=-1)
 
+        print(("src tgt", src.shape, tgt.shape))
+        print(("qkv", q.shape, k.shape, v.shape))
+
         attn_output, attn_output_weights = self.attn(q, k, v)
         return attn_output.to(dtype)
 
