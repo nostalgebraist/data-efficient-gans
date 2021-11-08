@@ -379,6 +379,7 @@ class SynthesisBlock(torch.nn.Module):
         self.architecture = architecture
         self.use_fp16 = use_fp16
         self.use_bf16 = use_bf16
+        self.use_encoder_decoder = use_encoder_decoder
         self.channels_last = (use_fp16 and fp16_channels_last)
         self.register_buffer('resample_filter', upfirdn2d.setup_filter(resample_filter))
         self.num_conv = 0
@@ -409,7 +410,6 @@ class SynthesisBlock(torch.nn.Module):
             self.skip = Conv2dLayer(in_channels, out_channels, kernel_size=1, bias=False, up=2,
                 resample_filter=resample_filter, channels_last=self.channels_last)
 
-        self.use_encoder_decoder = use_encoder_decoder
         if self.use_encoder_decoder:
             down = max(1, w_txt_res // self.resolution)
             up   = max(1, self.resolution // w_txt_res)
