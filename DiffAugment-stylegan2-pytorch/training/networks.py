@@ -569,6 +569,7 @@ class SynthesisNetwork(torch.nn.Module):
         text_concat     = False,
         use_encoder_decoder = False,
         use_cross_attn  = False,
+        cross_attn_resolution = 128,
         w_txt_dim       = 512,
         **block_kwargs,             # Arguments for SynthesisBlock.
     ):
@@ -592,10 +593,11 @@ class SynthesisNetwork(torch.nn.Module):
             out_channels = channels_dict[res]
             use_fp16 = (res >= fp16_resolution)
             is_last = (res == self.img_resolution)
+            block_use_cross_attn = use_cross_attn and (res <= cross_attn_resolution)
             block = SynthesisBlock(in_channels, out_channels, w_dim=w_dim, resolution=res,
                 img_channels=img_channels, is_last=is_last, use_fp16=use_fp16, use_bf16=use_bf16,
                 use_encoder_decoder=use_encoder_decoder,
-                use_cross_attn=use_cross_attn,
+                use_cross_attn=block_use_cross_attn,
                 w_txt_dim=w_txt_dim,
                 **block_kwargs)
             self.num_ws += block.num_conv
@@ -1049,6 +1051,7 @@ class Discriminator(torch.nn.Module):
         use_ws              = False,
         use_encoder_decoder = False,
         use_cross_attn      = False,
+        cross_attn_resolution = 128,
     ):
         super().__init__()
         self.c_dim = c_dim
@@ -1071,11 +1074,13 @@ class Discriminator(torch.nn.Module):
             tmp_channels = channels_dict[res]
             out_channels = channels_dict[res // 2]
             use_fp16 = (res >= fp16_resolution)
+            block_use_cross_attn = use_cross_attn and (res <= cross_attn_resolution)
+            block_use_ws = use_ws and ((not use_cross_attn) or (res <= cross_attn_resolution))
             block = DiscriminatorBlock(in_channels, tmp_channels, out_channels, resolution=res,
                 first_layer_idx=cur_layer_idx, use_fp16=use_fp16, use_bf16=use_bf16,
-                use_ws=use_ws,
+                use_ws=block_use_ws,
                 use_encoder_decoder=use_encoder_decoder,
-                use_cross_attn=use_cross_attn,
+                use_cross_attn=block_use_cross_attn,
                 w_dim=cmap_dim,
                 **block_kwargs, **common_kwargs)
             setattr(self, f'b{res}', block)
