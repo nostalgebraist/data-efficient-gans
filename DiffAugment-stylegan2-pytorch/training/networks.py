@@ -1106,6 +1106,7 @@ class Discriminator(torch.nn.Module):
                 w_avg_beta=None,
                 use_text_encoder=use_text_encoder,
                 use_encoder_decoder=use_encoder_decoder,
+                use_cross_attn=use_cross_attn,
                 **mapping_kwargs)
         else:
             self.mapping = None
