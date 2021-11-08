@@ -588,7 +588,8 @@ class TextEncoder(torch.nn.Module):
         use_rezero = False,
         use_encoder_decoder = False,
         decoder_sqrt_ntok = 32,
-        encoder_kwargs = {}
+        encoder_kwargs = {},
+        return_sequences=False
     ):
         super().__init__()
 
@@ -598,8 +599,8 @@ class TextEncoder(torch.nn.Module):
         assert inner_dim % head_dim == 0
         n_heads = inner_dim // head_dim
 
-
         self.use_encoder_decoder = use_encoder_decoder
+        self.return_sequences = return_sequences
 
         if self.use_encoder_decoder:
             enc_kwargs = dict(
@@ -653,7 +654,11 @@ class TextEncoder(torch.nn.Module):
             out = self.proj(out)
             return out
         else:
-            return self.proj(self.model(tokens, return_embeddings=True)[:, 0, :])
+            out = self.model(tokens, return_embeddings=True)
+            if not self.return_sequences:
+                out = out[:, 0, :]
+            out = self.proj(out)
+            return out
 
 
 #----------------------------------------------------------------------------
