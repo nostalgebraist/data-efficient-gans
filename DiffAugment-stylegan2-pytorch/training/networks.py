@@ -381,7 +381,7 @@ class SynthesisBlock(torch.nn.Module):
         self.use_fp16 = use_fp16
         self.use_bf16 = use_bf16
         down = w_txt_res // self.resolution
-        if down >= 1:
+        if down <= 1:
             use_encoder_decoder = False
         self.use_encoder_decoder = use_encoder_decoder
         self.channels_last = (use_fp16 and fp16_channels_last)
