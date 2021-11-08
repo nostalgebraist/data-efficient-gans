@@ -382,7 +382,7 @@ class CrossAttention(torch.nn.Module):
 
         k, v = kv.chunk(2)
 
-        attn_output = self.attn(q, k, v, need_weights=False)
+        attn_output, attn_output_weights = self.attn(q, k, v)
         return attn_output
 
 
