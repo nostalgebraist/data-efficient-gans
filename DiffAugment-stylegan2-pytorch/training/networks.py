@@ -498,7 +498,7 @@ class SynthesisBlock(torch.nn.Module):
                 w_resampled = self.txt_resample(ws_txt)
                 xw = torch.cat([x, w_resampled], dim=1)
                 xw = self.txt_gated_conv(xw)
-                x = torch.nn.functional.glu(xw)
+                x = torch.nn.functional.glu(xw, dim=1)
             else:
                 x = self.conv1(x, next(w_iter), fused_modconv=fused_modconv, **layer_kwargs)
 
