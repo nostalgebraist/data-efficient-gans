@@ -381,7 +381,7 @@ def training_loop(
         fields += [f"gpumem {training_stats.report0('Resources/peak_gpu_mem_gb', torch.cuda.max_memory_allocated(device) / 2**30):<6.2f}"]
         torch.cuda.reset_peak_memory_stats()
         fields += [f"augment {training_stats.report0('Progress/augment', float(augment_pipe.p.cpu()) if augment_pipe is not None else 0):.3f}"]
-        fields += [f"txt_gain: {txt_gain:.4f}"]
+        fields += [f"txt_gain: {txt_gain:.6f}"]
 
         for side, sidename in [(G.synthesis, "G"), (D, "D")]:
             for name, mod in side.named_modules():
