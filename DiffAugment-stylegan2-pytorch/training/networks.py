@@ -505,8 +505,8 @@ class SynthesisBlock(torch.nn.Module):
                 print(self.resolution)
                 tgt = rearrange(x, 'b c h w -> b (h w) c', h=x.shape[2])
                 tgt = tgt + self.pos_emb(tgt)
-                print(attn_out.shape)
                 attn_out = self.cross_attn(src=ws_txt, tgt=tgt)
+                print(attn_out.shape)
                 attn_out = rearrange(attn_out, 'b (h w) c -> b c h w', h=x.shape[2])
                 print(attn_out.shape)
                 x = x + attn_out
@@ -523,8 +523,8 @@ class SynthesisBlock(torch.nn.Module):
                 print(self.resolution)
                 tgt = rearrange(x, 'b c h w -> b (h w) c', h=x.shape[2])
                 tgt = tgt + self.pos_emb(tgt)
-                print(attn_out.shape)
                 attn_out = self.cross_attn(src=ws_txt, tgt=tgt)
+                print(attn_out.shape)
                 attn_out = rearrange(attn_out, 'b (h w) c -> b c h w', h=x.shape[2])
                 print(attn_out.shape)
                 x = x + attn_out
@@ -542,8 +542,8 @@ class SynthesisBlock(torch.nn.Module):
                 print(self.resolution)
                 tgt = rearrange(x, 'b c h w -> b (h w) c', h=x.shape[2])
                 tgt = tgt + self.pos_emb(tgt)
-                print(attn_out.shape)
                 attn_out = self.cross_attn(src=ws_txt, tgt=tgt)
+                print(attn_out.shape)
                 attn_out = rearrange(attn_out, 'b (h w) c -> b c h w', h=x.shape[2])
                 print(attn_out.shape)
                 x = x + attn_out
