@@ -379,6 +379,8 @@ class SynthesisBlock(torch.nn.Module):
         self.architecture = architecture
         self.use_fp16 = use_fp16
         self.use_bf16 = use_bf16
+        if (resolution // w_txt_res) >= 16:
+            use_encoder_decoder = False
         self.use_encoder_decoder = use_encoder_decoder
         self.channels_last = (use_fp16 and fp16_channels_last)
         self.register_buffer('resample_filter', upfirdn2d.setup_filter(resample_filter))
