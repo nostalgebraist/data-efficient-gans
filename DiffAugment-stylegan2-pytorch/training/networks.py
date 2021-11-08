@@ -1117,9 +1117,11 @@ class Discriminator(torch.nn.Module):
             block_ws = []
             with torch.autograd.profiler.record_function('split_ws'):
                 ws = ws.to(torch.float32)
+                print(ws.shape)
                 for w_idx, res in enumerate(self.block_resolutions):
                     block = getattr(self, f'b{res}')
                     block_w = txt_gain * ws[:, w_idx, ...]
+                    print(block_w.shape)
                     block_ws.append(block_w)
         else:
             block_ws = [None for _ in self.block_resolutions]
