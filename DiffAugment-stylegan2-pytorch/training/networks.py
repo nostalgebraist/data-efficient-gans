@@ -379,9 +379,6 @@ class SynthesisBlock(torch.nn.Module):
         self.architecture = architecture
         self.use_fp16 = use_fp16
         self.use_bf16 = use_bf16
-        ratio = w_txt_res // resolution
-        if (ratio >= 16) or (ratio <= 1/16):
-            use_encoder_decoder = False
         self.use_encoder_decoder = use_encoder_decoder
         self.channels_last = (use_fp16 and fp16_channels_last)
         self.register_buffer('resample_filter', upfirdn2d.setup_filter(resample_filter))
@@ -465,6 +462,7 @@ class SynthesisBlock(torch.nn.Module):
                 ws_txt = ws_txt.transpose(1, 3)
                 w_resampled = self.txt_resample(ws_txt)
                 x_down = self.pre_gate_proj(x)
+                print(("up down", self.txt_resample.up, self.txt_resample.down))
                 print(x_down.shape)
                 print(w_resampled.shape)
                 xw = torch.cat([x_down, w_resampled], dim=1)
@@ -775,9 +773,6 @@ class DiscriminatorBlock(torch.nn.Module):
         self.channels_last = (use_fp16 and fp16_channels_last)
         self.use_bf16 = use_bf16
         self.use_ws = use_ws
-        ratio = w_txt_res // resolution
-        if (ratio >= 16) or (ratio <= 1/16):
-            use_encoder_decoder = False
         self.use_encoder_decoder = use_encoder_decoder
         self.register_buffer('resample_filter', upfirdn2d.setup_filter(resample_filter))
 
