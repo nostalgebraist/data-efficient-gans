@@ -376,8 +376,6 @@ class CrossAttention(torch.nn.Module):
 
     def forward(self, src, tgt):
         dtype = tgt.dtype
-        print((src.shape, src.dtype))
-        print((tgt.shape, tgt.dtype))
         q = self.q(tgt.to(torch.float32))
         kv = self.kv(src)
 
@@ -502,14 +500,10 @@ class SynthesisBlock(torch.nn.Module):
                 x = x + ws_txt_out
             x = self.conv1(x, next(w_iter), fused_modconv=fused_modconv, **layer_kwargs)
             if self.use_cross_attn:
-                print(x.shape)
-                print(self.resolution)
                 tgt = rearrange(x, 'b c h w -> b (h w) c', h=x.shape[2])
                 tgt = tgt + self.pos_emb(tgt)
                 attn_out = self.cross_attn(src=ws_txt, tgt=tgt)
-                print(attn_out.shape)
                 attn_out = rearrange(attn_out, 'b (h w) c -> b c h w', h=x.shape[2])
-                print(attn_out.shape)
                 x = x + attn_out
         elif self.architecture == 'resnet':
             y = self.skip(x, gain=np.sqrt(0.5))
@@ -520,14 +514,10 @@ class SynthesisBlock(torch.nn.Module):
                 ws_txt_out = self.txt_conv(ws_txt)
                 x = x + ws_txt_out
             elif self.use_cross_attn:
-                print(x.shape)
-                print(self.resolution)
                 tgt = rearrange(x, 'b c h w -> b (h w) c', h=x.shape[2])
                 tgt = tgt + self.pos_emb(tgt)
                 attn_out = self.cross_attn(src=ws_txt, tgt=tgt)
-                print(attn_out.shape)
                 attn_out = rearrange(attn_out, 'b (h w) c -> b c h w', h=x.shape[2])
-                print(attn_out.shape)
                 x = x + attn_out
             x = self.conv1(x, next(w_iter), fused_modconv=fused_modconv, gain=np.sqrt(0.5), **layer_kwargs)
             x = y.add_(x)
@@ -539,14 +529,10 @@ class SynthesisBlock(torch.nn.Module):
                 ws_txt_out = self.txt_conv(ws_txt)
                 x = x + ws_txt_out
             elif self.use_cross_attn:
-                print(x.shape)
-                print(self.resolution)
                 tgt = rearrange(x, 'b c h w -> b (h w) c', h=x.shape[2])
                 tgt = tgt + self.pos_emb(tgt)
                 attn_out = self.cross_attn(src=ws_txt, tgt=tgt)
-                print(attn_out.shape)
                 attn_out = rearrange(attn_out, 'b (h w) c -> b c h w', h=x.shape[2])
-                print(attn_out.shape)
                 x = x + attn_out
             x = self.conv1(x, next(w_iter), fused_modconv=fused_modconv, **layer_kwargs)
 
