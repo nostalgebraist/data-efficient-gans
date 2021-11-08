@@ -419,8 +419,10 @@ class SynthesisBlock(torch.nn.Module):
                 resample_filter=resample_filter, channels_last=self.channels_last,
                 activation='linear'
             )
-            self.pre_gate_proj = torch.nn.Linear(out_channels, out_channels // 2,
-                                                 dtype=torch.float16 if self.use_fp16 else torch.float32)
+            self.pre_gate_proj = Conv2dLayer(out_channels, out_channels // 2,
+                                             kernel_size=1,
+                                             activation='linear',
+                                             conv_clamp=conv_clamp, channels_last=self.channels_last)
             self.txt_gated_conv = Conv2dLayer(
                 out_channels, out_channels, kernel_size=3, activation='linear',
                 conv_clamp=conv_clamp, channels_last=self.channels_last
