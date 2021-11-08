@@ -569,6 +569,7 @@ class SynthesisNetwork(torch.nn.Module):
         text_concat     = False,
         use_encoder_decoder = False,
         use_cross_attn  = False,
+        w_txt_dim       = 512,
         **block_kwargs,             # Arguments for SynthesisBlock.
     ):
         assert img_resolution >= 4 and img_resolution & (img_resolution - 1) == 0
@@ -595,6 +596,7 @@ class SynthesisNetwork(torch.nn.Module):
                 img_channels=img_channels, is_last=is_last, use_fp16=use_fp16, use_bf16=use_bf16,
                 use_encoder_decoder=use_encoder_decoder,
                 use_cross_attn=use_cross_attn,
+                w_txt_dim=w_txt_dim,
                 **block_kwargs)
             self.num_ws += block.num_conv
             if is_last:
