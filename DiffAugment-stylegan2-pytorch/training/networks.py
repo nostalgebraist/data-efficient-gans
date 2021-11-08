@@ -806,7 +806,9 @@ class DiscriminatorBlock(torch.nn.Module):
         w_dim               = 512,
         use_encoder_decoder = False,
         w_txt_res           = 32,
-
+        use_cross_attn      = False,
+        cross_attn_heads    = 1,
+        cross_attn_dim       = None,  # default: tmp_channels
     ):
         assert in_channels in [0, tmp_channels]
         assert architecture in ['orig', 'skip', 'resnet']
@@ -821,6 +823,7 @@ class DiscriminatorBlock(torch.nn.Module):
         self.use_bf16 = use_bf16
         self.use_ws = use_ws
         self.use_encoder_decoder = use_encoder_decoder
+        self.use_cross_attn = use_cross_attn
         self.register_buffer('resample_filter', upfirdn2d.setup_filter(resample_filter))
 
         self.num_layers = 0
@@ -836,7 +839,7 @@ class DiscriminatorBlock(torch.nn.Module):
             self.fromrgb = Conv2dLayer(img_channels, tmp_channels, kernel_size=1, activation=activation,
                 trainable=next(trainable_iter), conv_clamp=conv_clamp, channels_last=self.channels_last)
 
-        if self.use_ws and (not self.use_encoder_decoder):
+        if self.use_ws and (not self.use_encoder_decoder) and (not self.use_cross_attn):
             self.conv0 = SynthesisLayer(tmp_channels, tmp_channels, w_dim=w_dim, resolution=resolution,
                                         kernel_size=3, activation=activation,
                                         conv_clamp=conv_clamp, channels_last=self.channels_last)
@@ -860,6 +863,14 @@ class DiscriminatorBlock(torch.nn.Module):
                 resample_filter=resample_filter, channels_last=self.channels_last,
                 activation='relu'
             )
+        if self.use_cross_attn:
+            if cross_attn_dim is None:
+                cross_attn_dim = tmp_channels
+            self.cross_attn = CrossAttention(dim=cross_attn_dim, heads=cross_attn_heads, text_dim=w_dim)
+            self.pos_emb = AxialPositionalEmbedding(dim=tmp_channels,
+                                                    axial_shape=(self.resolution, self.resolution),
+                                                    axial_dims=(tmp_channels//2, tmp_channels//2)
+                                                    )
 
 
     def forward(self, x, img, w=None, force_fp32=False, autocasting=False):
@@ -890,7 +901,16 @@ class DiscriminatorBlock(torch.nn.Module):
         # Main layers.
         if self.architecture == 'resnet':
             y = self.skip(x, gain=np.sqrt(0.5))
-            if self.use_ws and self.use_encoder_decoder:
+            if self.use_cross_attn:
+                x = self.conv0(x)
+                print(x.shape)
+                tgt = rearrange(x, 'b c h w -> b (h w) c', h=x.shape[2])
+                print(tgt.shape)
+                tgt = tgt + self.pos_emb(tgt)
+                attn_out = self.cross_attn(src=w, tgt=tgt)
+                attn_out = rearrange(attn_out, 'b (h w) c -> b c h w', h=x.shape[2])
+                x = 0.5*x + 0.5*attn_out
+            elif self.use_ws and self.use_encoder_decoder:
                 x = self.conv0(x)
                 w = w.to(dtype=dtype, memory_format=memory_format)
                 w = w.transpose(1, 3)
@@ -903,7 +923,16 @@ class DiscriminatorBlock(torch.nn.Module):
             x = self.conv1(x, gain=np.sqrt(0.5))
             x = y.add_(x)
         else:
-            if self.use_ws and self.use_encoder_decoder:
+            if self.use_cross_attn:
+                x = self.conv0(x)
+                print(x.shape)
+                tgt = rearrange(x, 'b c h w -> b (h w) c', h=x.shape[2])
+                print(tgt.shape)
+                tgt = tgt + self.pos_emb(tgt)
+                attn_out = self.cross_attn(src=w, tgt=tgt)
+                attn_out = rearrange(attn_out, 'b (h w) c -> b c h w', h=x.shape[2])
+                x = 0.5*x + 0.5*attn_out
+            elif self.use_ws and self.use_encoder_decoder:
                 x = self.conv0(x)
                 w = w.to(dtype=dtype, memory_format=memory_format)
                 w = w.transpose(1, 3)
@@ -1022,7 +1051,8 @@ class Discriminator(torch.nn.Module):
         epilogue_kwargs     = {},       # Arguments for DiscriminatorEpilogue.
         use_text_encoder    = False,
         use_ws              = False,
-        use_encoder_decoder = False
+        use_encoder_decoder = False,
+        use_cross_attn      = False,
     ):
         super().__init__()
         self.c_dim = c_dim
@@ -1049,6 +1079,7 @@ class Discriminator(torch.nn.Module):
                 first_layer_idx=cur_layer_idx, use_fp16=use_fp16, use_bf16=use_bf16,
                 use_ws=use_ws,
                 use_encoder_decoder=use_encoder_decoder,
+                use_cross_attn=use_cross_attn,
                 w_dim=cmap_dim,
                 **block_kwargs, **common_kwargs)
             setattr(self, f'b{res}', block)
@@ -1056,6 +1087,7 @@ class Discriminator(torch.nn.Module):
 
         self.use_ws = use_ws
         self.use_encoder_decoder = use_encoder_decoder
+        self.use_cross_attn = use_cross_attn
 
         self.num_ws = None
         if c_dim > 0 or use_text_encoder:
