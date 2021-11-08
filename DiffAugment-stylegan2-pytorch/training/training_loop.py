@@ -382,6 +382,14 @@ def training_loop(
         torch.cuda.reset_peak_memory_stats()
         fields += [f"augment {training_stats.report0('Progress/augment', float(augment_pipe.p.cpu()) if augment_pipe is not None else 0):.3f}"]
         fields += [f"txt_gain: {txt_gain:.4f}"]
+
+        for side, sidename in [(G.synthesis, "G"), (D, "D")]:
+            for n, mod in side.named_modules():
+                if hasattr(mod, "cross_attn"):
+                    with torch.no_grad():
+                        gain_exp = mod.cross_attn.gain.exp().item()
+                    fields += [f"{sidename} {name} : {gain_exp:.4f}"]
+
         training_stats.report0('Timing/total_hours', (tick_end_time - start_time) / (60 * 60))
         training_stats.report0('Timing/total_days', (tick_end_time - start_time) / (24 * 60 * 60))
         if rank == 0:
