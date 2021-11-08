@@ -263,12 +263,15 @@ class MappingNetwork(torch.nn.Module):
             # x = x + ws_txt if x is not None else ws_txt
 
         # Broadcast.
+        print(("mapping ws_txt before broadcast", ws_txt.shape))
+        print(("mapping num_ws", self.num_ws))
         if self.num_ws is not None:
             with torch.autograd.profiler.record_function('broadcast'):
                 if x is not None:
                     x = x.unsqueeze(1).repeat([1, self.num_ws, 1])
                 if ws_txt is not None:
                     ws_txt = ws_txt.unsqueeze(1).repeat([1, self.num_ws] + [1]*(ws_txt.ndim-1))
+        print(("mapping ws_txt after broadcast", ws_txt.shape))
 
         # Apply truncation.
         if truncation_psi != 1:
