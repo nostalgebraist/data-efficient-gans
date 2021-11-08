@@ -365,7 +365,7 @@ class SynthesisBlock(torch.nn.Module):
         fp16_channels_last  = False,        # Use channels-last memory format with FP16?
         use_bf16            = False,
         use_encoder_decoder = False,
-        w_txt_res           = 16,
+        w_txt_res           = 32,
         w_txt_dim           = 512,
         **layer_kwargs,                     # Arguments for SynthesisLayer.
     ):
@@ -379,8 +379,6 @@ class SynthesisBlock(torch.nn.Module):
         self.architecture = architecture
         self.use_fp16 = use_fp16
         self.use_bf16 = use_bf16
-        if (resolution // w_txt_res) >= 16:
-            use_encoder_decoder = False
         self.use_encoder_decoder = use_encoder_decoder
         self.channels_last = (use_fp16 and fp16_channels_last)
         self.register_buffer('resample_filter', upfirdn2d.setup_filter(resample_filter))
@@ -706,7 +704,7 @@ class Generator(torch.nn.Module):
         synthesis_kwargs    = {},   # Arguments for SynthesisNetwork.
         text_concat         = False,
         use_encoder_decoder = False,
-        w_txt_res           = 16,
+        w_txt_res           = 32,
         w_txt_dim           = 512,
     ):
         super().__init__()
