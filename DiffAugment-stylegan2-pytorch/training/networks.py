@@ -506,6 +506,7 @@ class SynthesisBlock(torch.nn.Module):
                 tgt = rearrange(x, 'b c h w -> b (h w) c', h=x.shape[2])
                 tgt = tgt + self.pos_emb(tgt)
                 attn_out = self.cross_attn(src=ws_txt, tgt=tgt)
+                print(attn_out.shape)
                 x = x + attn_out
         elif self.architecture == 'resnet':
             y = self.skip(x, gain=np.sqrt(0.5))
