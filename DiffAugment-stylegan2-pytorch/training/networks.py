@@ -450,6 +450,7 @@ class SynthesisBlock(torch.nn.Module):
                 x = x.to(dtype=dtype, memory_format=memory_format)
 
         # Main layers.
+        print((self.architecture, self.in_channels, self.is_last))
         if self.in_channels == 0:
             if self.use_encoder_decoder:
                 ws_txt = ws_txt.to(dtype=dtype, memory_format=memory_format)
@@ -506,6 +507,7 @@ class SynthesisBlock(torch.nn.Module):
             misc.assert_shape(img, [None, self.img_channels, self.resolution // 2, self.resolution // 2])
             img = upfirdn2d.upsample2d(img, self.resample_filter)
         if self.is_last or self.architecture == 'skip':
+            print(x.shape)
             y = self.torgb(x, next(w_iter), fused_modconv=fused_modconv)
             if autocasting:
                 y = y.to(memory_format=torch.contiguous_format)
