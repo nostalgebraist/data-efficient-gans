@@ -817,7 +817,8 @@ class DiscriminatorBlock(torch.nn.Module):
         w_txt_res           = 32,
         use_cross_attn      = False,
         cross_attn_heads    = 1,
-        cross_attn_dim       = None,  # default: tmp_channels
+        cross_attn_dim      = None,  # default: tmp_channels
+        cross_attn_pdrop    = 0,
     ):
         assert in_channels in [0, tmp_channels]
         assert architecture in ['orig', 'skip', 'resnet']
@@ -833,6 +834,7 @@ class DiscriminatorBlock(torch.nn.Module):
         self.use_ws = use_ws
         self.use_encoder_decoder = use_encoder_decoder
         self.use_cross_attn = use_cross_attn
+        self.cross_attn_pdrop = cross_attn_pdrop
         self.register_buffer('resample_filter', upfirdn2d.setup_filter(resample_filter))
 
         self.num_layers = 0
@@ -919,6 +921,9 @@ class DiscriminatorBlock(torch.nn.Module):
                 tgt = tgt + self.pos_emb(tgt)
                 attn_out = self.cross_attn(src=w, tgt=tgt)
                 attn_out = rearrange(attn_out, 'b (h w) c -> b c h w', h=x.shape[2])
+                if self.cross_attn_pdrop > 0:
+                    dropmask = torch.rand((attn_out.shape[0],))
+                    attn_out = torch.where(dropmask < self.cross_attn_pdrop, torch.zeros_like(attn_out), attn_out)
                 x = 0.5*x + 0.5*attn_out
             elif self.use_ws and self.use_encoder_decoder:
                 x = self.conv0(x)
@@ -939,6 +944,9 @@ class DiscriminatorBlock(torch.nn.Module):
                 tgt = tgt + self.pos_emb(tgt)
                 attn_out = self.cross_attn(src=w, tgt=tgt)
                 attn_out = rearrange(attn_out, 'b (h w) c -> b c h w', h=x.shape[2])
+                if self.cross_attn_pdrop > 0:
+                    dropmask = torch.rand((attn_out.shape[0],))
+                    attn_out = torch.where(dropmask < self.cross_attn_pdrop, torch.zeros_like(attn_out), attn_out)
                 x = 0.5*x + 0.5*attn_out
             elif self.use_ws and self.use_encoder_decoder:
                 x = self.conv0(x)
@@ -1062,6 +1070,7 @@ class Discriminator(torch.nn.Module):
         use_encoder_decoder = False,
         use_cross_attn      = False,
         cross_attn_resolution = 128,
+        cross_attn_pdrop    = 0,
     ):
         super().__init__()
         self.c_dim = c_dim
@@ -1091,6 +1100,7 @@ class Discriminator(torch.nn.Module):
                 use_ws=block_use_ws,
                 use_encoder_decoder=use_encoder_decoder,
                 use_cross_attn=block_use_cross_attn,
+                cross_attn_pdrop=cross_attn_pdrop,
                 w_dim=cmap_dim,
                 **block_kwargs, **common_kwargs)
             setattr(self, f'b{res}', block)
