@@ -818,6 +818,7 @@ class DiscriminatorBlock(torch.nn.Module):
                                              conv_clamp=conv_clamp, channels_last=self.channels_last)
             self.txt_gated_conv = Conv2dLayer(
                 tmp_channels, 2*out_channels, kernel_size=3, activation=activation,
+                down=2,
                 conv_clamp=conv_clamp, channels_last=self.channels_last
             )
 
@@ -868,8 +869,6 @@ class DiscriminatorBlock(torch.nn.Module):
                 print(x.shape)
             else:
                 x = self.conv1(x, gain=np.sqrt(0.5))
-            print(x.shape)
-            print(y.shape)
             x = y.add_(x)
         else:
             if self.use_ws and not self.use_encoder_decoder:
