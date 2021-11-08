@@ -208,7 +208,7 @@ class MappingNetwork(torch.nn.Module):
             self.text_encoder = TextEncoder(
                 w_dim=text_out_dim,
                 use_encoder_decoder=use_encoder_decoder,
-                return_sequences=use_cross_attn
+                return_sequences=use_cross_attn,
                 **text_kwargs
             )
         else:
