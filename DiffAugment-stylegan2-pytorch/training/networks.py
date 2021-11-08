@@ -384,6 +384,10 @@ class CrossAttention(torch.nn.Module):
 
         self.gain = torch.nn.Parameter(torch.as_tensor(np.log(init_gain)))
 
+        torch.nn.init.orthogonal_(self.q.weight)
+        torch.nn.init.orthogonal_(self.kv.weight)
+        torch.nn.init.orthogonal_(self.attn.out_proj.weight)
+
     def forward(self, src, tgt):
         dtype = tgt.dtype
         q = self.q(self.tgt_ln(tgt.to(torch.float32)))
