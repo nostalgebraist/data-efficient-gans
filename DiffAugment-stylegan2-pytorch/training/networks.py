@@ -378,8 +378,6 @@ class CrossAttention(torch.nn.Module):
 
     def forward(self, src, tgt):
         dtype = tgt.dtype
-        print((src.shape, tgt.shape))
-        print((self.dim, self.text_dim))
         q = self.q(tgt.to(torch.float32))
         kv = self.kv(src)
 
