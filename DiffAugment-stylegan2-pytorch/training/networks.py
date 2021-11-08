@@ -450,20 +450,14 @@ class SynthesisBlock(torch.nn.Module):
                 x = x.to(dtype=dtype, memory_format=memory_format)
 
         # Main layers.
-        print((self.architecture, self.in_channels, self.is_last))
         if self.in_channels == 0:
             if self.use_encoder_decoder:
                 ws_txt = ws_txt.to(dtype=dtype, memory_format=memory_format)
                 ws_txt = ws_txt.transpose(1, 3)
                 w_resampled = self.txt_resample(ws_txt)
-                print(x.shape)
-                print(w_resampled.shape)
                 xw = torch.cat([x, w_resampled], dim=1)
-                print(xw.shape)
                 xw = self.txt_gated_conv(xw)
-                print(xw.shape)
                 x = torch.nn.functional.glu(xw, dim=1)
-                print(x.shape)
             else:
                 x = self.conv1(x, next(w_iter), fused_modconv=fused_modconv, **layer_kwargs)
         elif self.architecture == 'resnet':
@@ -476,14 +470,9 @@ class SynthesisBlock(torch.nn.Module):
                 ws_txt = ws_txt.to(dtype=dtype, memory_format=memory_format)
                 ws_txt = ws_txt.transpose(1, 3)
                 w_resampled = self.txt_resample(ws_txt)
-                print(x.shape)
-                print(w_resampled.shape)
                 xw = torch.cat([x, w_resampled], dim=1)
-                print(xw.shape)
                 xw = self.txt_gated_conv(xw)
-                print(xw.shape)
                 x = torch.nn.functional.glu(xw, dim=1)
-                print(x.shape)
             else:
                 x = self.conv1(x, next(w_iter), fused_modconv=fused_modconv, gain=np.sqrt(0.5), **layer_kwargs)
             x = y.add_(x)
@@ -507,7 +496,6 @@ class SynthesisBlock(torch.nn.Module):
             misc.assert_shape(img, [None, self.img_channels, self.resolution // 2, self.resolution // 2])
             img = upfirdn2d.upsample2d(img, self.resample_filter)
         if self.is_last or self.architecture == 'skip':
-            print(x.shape)
             y = self.torgb(x, next(w_iter), fused_modconv=fused_modconv)
             if autocasting:
                 y = y.to(memory_format=torch.contiguous_format)
