@@ -807,13 +807,17 @@ class DiscriminatorBlock(torch.nn.Module):
             up   = max(1, self.resolution // w_txt_res)
             self.txt_gate = torch.nn.Linear(w_dim, tmp_channels)
             self.txt_resample = Conv2dLayer(
-                w_dim, w_dim, kernel_size=3, bias=True,
+                w_dim, tmp_channels // 2, kernel_size=1, bias=True,
                 up=up, down=down,
                 resample_filter=resample_filter, channels_last=self.channels_last,
                 activation='linear'
             )
+            self.pre_gate_proj = Conv2dLayer(tmp_channels, tmp_channels // 2,
+                                             kernel_size=1,
+                                             activation='linear',
+                                             conv_clamp=conv_clamp, channels_last=self.channels_last)
             self.txt_gated_conv = Conv2dLayer(
-                tmp_channels, tmp_channels, kernel_size=3, activation=activation,
+                tmp_channels, 2*out_channels, kernel_size=3, activation=activation,
                 conv_clamp=conv_clamp, channels_last=self.channels_last
             )
 
@@ -846,42 +850,36 @@ class DiscriminatorBlock(torch.nn.Module):
         # Main layers.
         if self.architecture == 'resnet':
             y = self.skip(x, gain=np.sqrt(0.5))
-            if self.use_ws and self.use_encoder_decoder:
-                x = self.conv0(x, gain=np.sqrt(0.5))
-                w = w.to(dtype=dtype, memory_format=memory_format)
-                w = w.transpose(1, 3)
-                w_resampled = self.txt_resample(w)
-                w_resampled = w_resampled.transpose(1, 3)
-                w_gates = self.txt_gate(w_resampled.to(self.txt_gate.weight.dtype))
-                w_gates = torch.sigmoid(w_gates).to(dtype)
-                w_gates = w_gates.transpose(1, 3)
-                x_gated = self.txt_gated_conv(x, gain=np.sqrt(0.5))
-                ws_txt_out = x_gated * w_gates
-                x = x + ws_txt_out
-            elif self.use_ws:
+            if self.use_ws and not self.use_encoder_decoder:
                 x = self.conv0(x, w)
             else:
                 x = self.conv0(x)
-            x = self.conv1(x, gain=np.sqrt(0.5))
+            if self.use_encoder_decoder:
+                ws_txt = w.to(dtype=dtype, memory_format=memory_format)
+                ws_txt = ws_txt.transpose(1, 3)
+                w_resampled = self.txt_resample(ws_txt)
+                x_down = self.pre_gate_proj(x)
+                xw = torch.cat([x_down, w_resampled], dim=1)
+                xw = self.txt_gated_conv(xw)
+                x = torch.nn.functional.glu(xw, dim=1)
+            else:
+                x = self.conv1(x, gain=np.sqrt(0.5))
             x = y.add_(x)
         else:
-            if self.use_ws and self.use_encoder_decoder:
-                x = self.conv0(x, gain=np.sqrt(0.5))
-                w = w.to(dtype=dtype, memory_format=memory_format)
-                w = w.transpose(1, 3)
-                w_resampled = self.txt_resample(w)
-                w_resampled = w_resampled.transpose(1, 3)
-                w_gates = self.txt_gate(w_resampled.to(self.txt_gate.weight.dtype))
-                w_gates = torch.sigmoid(w_gates).to(dtype)
-                w_gates = w_gates.transpose(1, 3)
-                x_gated = self.txt_gated_conv(x, gain=np.sqrt(0.5))
-                ws_txt_out = x_gated * w_gates
-                x = x + ws_txt_out
-            elif self.use_ws:
+            if self.use_ws and not self.use_encoder_decoder:
                 x = self.conv0(x, w)
             else:
                 x = self.conv0(x)
-            x = self.conv1(x)
+            if self.use_encoder_decoder:
+                ws_txt = w.to(dtype=dtype, memory_format=memory_format)
+                ws_txt = ws_txt.transpose(1, 3)
+                w_resampled = self.txt_resample(ws_txt)
+                x_down = self.pre_gate_proj(x)
+                xw = torch.cat([x_down, w_resampled], dim=1)
+                xw = self.txt_gated_conv(xw)
+                x = torch.nn.functional.glu(xw, dim=1)
+            else:
+                x = self.conv1(x)
 
         # assert x.dtype == dtype
         return x, img
