@@ -380,7 +380,7 @@ class CrossAttention(torch.nn.Module):
         q = self.q(tgt.to(torch.float32))
         kv = self.kv(src)
 
-        k, v = kv.chunk(2)
+        k, v = kv.chunk(2, dim=-1)
 
         print((q.shape, k.shape, v.shape))
 
