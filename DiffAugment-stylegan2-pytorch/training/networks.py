@@ -779,9 +779,6 @@ class DiscriminatorBlock(torch.nn.Module):
         self.channels_last = (use_fp16 and fp16_channels_last)
         self.use_bf16 = use_bf16
         self.use_ws = use_ws
-        down = w_txt_res // self.resolution
-        if down < 1:
-            use_encoder_decoder = False
         self.use_encoder_decoder = use_encoder_decoder
         self.register_buffer('resample_filter', upfirdn2d.setup_filter(resample_filter))
 
