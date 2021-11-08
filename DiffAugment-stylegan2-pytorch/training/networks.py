@@ -506,7 +506,7 @@ class SynthesisBlock(torch.nn.Module):
                 tgt = tgt + self.pos_emb(tgt)
                 attn_out = self.cross_attn(src=ws_txt, tgt=tgt)
                 attn_out = rearrange(attn_out, 'b (h w) c -> b c h w', h=x.shape[2])
-                x = x + attn_out
+                x = 0.5*x + 0.5*attn_out
         elif self.architecture == 'resnet':
             y = self.skip(x, gain=np.sqrt(0.5))
             x = self.conv0(x, next(w_iter), fused_modconv=fused_modconv, **layer_kwargs)
@@ -520,7 +520,7 @@ class SynthesisBlock(torch.nn.Module):
                 tgt = tgt + self.pos_emb(tgt)
                 attn_out = self.cross_attn(src=ws_txt, tgt=tgt)
                 attn_out = rearrange(attn_out, 'b (h w) c -> b c h w', h=x.shape[2])
-                x = x + attn_out
+                x = 0.5*x + 0.5*attn_out
             x = self.conv1(x, next(w_iter), fused_modconv=fused_modconv, gain=np.sqrt(0.5), **layer_kwargs)
             x = y.add_(x)
         else:
@@ -535,7 +535,7 @@ class SynthesisBlock(torch.nn.Module):
                 tgt = tgt + self.pos_emb(tgt)
                 attn_out = self.cross_attn(src=ws_txt, tgt=tgt)
                 attn_out = rearrange(attn_out, 'b (h w) c -> b c h w', h=x.shape[2])
-                x = x + attn_out
+                x = 0.5*x + 0.5*attn_out
             x = self.conv1(x, next(w_iter), fused_modconv=fused_modconv, **layer_kwargs)
 
         # ToRGB.
