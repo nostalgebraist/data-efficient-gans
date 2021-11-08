@@ -381,7 +381,7 @@ class CrossAttention(torch.nn.Module):
         self.src_ln = torch.nn.LayerNorm(self.text_dim)
         self.tgt_ln = torch.nn.LayerNorm(self.dim)
 
-        # self.gain = torch.nn.Parameter(1.)
+        self.gain = torch.nn.Parameter(1.)
 
     def forward(self, src, tgt):
         dtype = tgt.dtype
@@ -391,6 +391,7 @@ class CrossAttention(torch.nn.Module):
         k, v = kv.chunk(2, dim=-1)
 
         attn_output, attn_output_weights = self.attn(q, k, v)
+        attn_output = self.gain * attn_output
         if self.clamp is not None:
             attn_output = attn_output.clamp(min=-self.clamp, max=self.clamp)
         return attn_output.to(dtype)
@@ -518,7 +519,7 @@ class SynthesisBlock(torch.nn.Module):
                 tgt = tgt + self.pos_emb(tgt)
                 attn_out = self.cross_attn(src=ws_txt, tgt=tgt)
                 attn_out = rearrange(attn_out, 'b (h w) c -> b c h w', h=x.shape[2])
-                x = 0.5*x + 0.5*attn_out
+                x = x/np.sqrt(2) + attn_out/np.sqrt(2)
         elif self.architecture == 'resnet':
             y = self.skip(x, gain=np.sqrt(0.5))
             x = self.conv0(x, next(w_iter), fused_modconv=fused_modconv, **layer_kwargs)
@@ -532,7 +533,7 @@ class SynthesisBlock(torch.nn.Module):
                 tgt = tgt + self.pos_emb(tgt)
                 attn_out = self.cross_attn(src=ws_txt, tgt=tgt)
                 attn_out = rearrange(attn_out, 'b (h w) c -> b c h w', h=x.shape[2])
-                x = 0.5*x + 0.5*attn_out
+                x = x/np.sqrt(2) + attn_out/np.sqrt(2)
             x = self.conv1(x, next(w_iter), fused_modconv=fused_modconv, gain=np.sqrt(0.5), **layer_kwargs)
             x = y.add_(x)
         else:
@@ -547,7 +548,7 @@ class SynthesisBlock(torch.nn.Module):
                 tgt = tgt + self.pos_emb(tgt)
                 attn_out = self.cross_attn(src=ws_txt, tgt=tgt)
                 attn_out = rearrange(attn_out, 'b (h w) c -> b c h w', h=x.shape[2])
-                x = 0.5*x + 0.5*attn_out
+                x = x/np.sqrt(2) + attn_out/np.sqrt(2)
             x = self.conv1(x, next(w_iter), fused_modconv=fused_modconv, **layer_kwargs)
 
         # ToRGB.
@@ -929,7 +930,7 @@ class DiscriminatorBlock(torch.nn.Module):
                 if self.cross_attn_pdrop > 0:
                     dropmask = torch.rand((attn_out.shape[0],))
                     attn_out = torch.where(dropmask < self.cross_attn_pdrop, torch.zeros_like(attn_out), attn_out)
-                x = 0.5*x + 0.5*attn_out
+                x = x/np.sqrt(2) + attn_out/np.sqrt(2)
             elif self.use_ws and self.use_encoder_decoder:
                 x = self.conv0(x)
                 w = w.to(dtype=dtype, memory_format=memory_format)
@@ -952,7 +953,7 @@ class DiscriminatorBlock(torch.nn.Module):
                 if self.cross_attn_pdrop > 0:
                     dropmask = torch.rand((attn_out.shape[0],))
                     attn_out = torch.where(dropmask < self.cross_attn_pdrop, torch.zeros_like(attn_out), attn_out)
-                x = 0.5*x + 0.5*attn_out
+                x = x/np.sqrt(2) + attn_out/np.sqrt(2)
             elif self.use_ws and self.use_encoder_decoder:
                 x = self.conv0(x)
                 w = w.to(dtype=dtype, memory_format=memory_format)
