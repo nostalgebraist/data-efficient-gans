@@ -414,13 +414,14 @@ class SynthesisBlock(torch.nn.Module):
             down = max(1, w_txt_res // self.resolution)
             up   = max(1, self.resolution // w_txt_res)
             self.txt_resample = Conv2dLayer(
-                w_txt_dim, out_channels // 2, kernel_size=1, bias=True,
+                w_txt_dim, out_channels // 2, kernel_size=1, bias=False,
                 up=up, down=down,
                 resample_filter=resample_filter, channels_last=self.channels_last,
                 activation='linear'
             )
             self.pre_gate_proj = Conv2dLayer(out_channels, out_channels // 2,
                                              kernel_size=1,
+                                              bias=False,
                                              activation='linear',
                                              conv_clamp=conv_clamp, channels_last=self.channels_last)
             self.txt_gated_conv = Conv2dLayer(
@@ -808,13 +809,14 @@ class DiscriminatorBlock(torch.nn.Module):
             up   = max(1, self.resolution // w_txt_res)
             self.txt_gate = torch.nn.Linear(w_dim, tmp_channels)
             self.txt_resample = Conv2dLayer(
-                w_dim, tmp_channels // 2, kernel_size=1, bias=True,
+                w_dim, tmp_channels // 2, kernel_size=1, bias=False,
                 up=up, down=down,
                 resample_filter=resample_filter, channels_last=self.channels_last,
                 activation='linear'
             )
             self.pre_gate_proj = Conv2dLayer(tmp_channels, tmp_channels // 2,
                                              kernel_size=1,
+                                             bias=False,
                                              activation='linear',
                                              conv_clamp=conv_clamp, channels_last=self.channels_last)
             self.txt_gated_conv = Conv2dLayer(
