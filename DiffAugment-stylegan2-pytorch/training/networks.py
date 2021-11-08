@@ -461,6 +461,8 @@ class SynthesisBlock(torch.nn.Module):
                 ws_txt = ws_txt.transpose(1, 3)
                 w_resampled = self.txt_resample(ws_txt)
                 x_down = self.pre_gate_proj(x)
+                print(x_down.shape)
+                print(w_resampled.shape)
                 xw = torch.cat([x_down, w_resampled], dim=1)
                 xw = self.txt_gated_conv(xw)
                 x = torch.nn.functional.glu(xw, dim=1)
