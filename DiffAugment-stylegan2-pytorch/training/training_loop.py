@@ -194,6 +194,13 @@ def training_loop(
         if name is not None:
             ddp_modules[name] = module
 
+    def is_text_lr(name):
+        if 'mapping.text_encoder' in name:
+            return True
+        if 'cross_attn' in name and 'gain' not in name:
+            return True
+        return False
+
     # Setup training phases.
     if rank == 0:
         print('Setting up training phases...')
@@ -203,10 +210,10 @@ def training_loop(
         if module.mapping.text_encoder is not None:
             param_groups = [
                 {
-                    "params": [p for n, p in module.named_parameters() if 'mapping.text_encoder' not in n]
+                    "params": [p for n, p in module.named_parameters() if not(is_text_lr(n))]
                 },
                 {
-                    "params": [p for n, p in module.named_parameters() if 'mapping.text_encoder' in n],
+                    "params": [p for n, p in module.named_parameters() if is_text_lr(n)],
                     "lr": text_lr if text_lr is not None else opt_kwargs['lr'],
                     "betas": [
                         text_momentum if text_momentum is not None else opt_kwargs['betas'][0],
