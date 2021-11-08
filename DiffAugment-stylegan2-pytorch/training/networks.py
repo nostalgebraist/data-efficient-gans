@@ -186,6 +186,7 @@ class MappingNetwork(torch.nn.Module):
         lr_multiplier   = 0.01,     # Learning rate multiplier for the mapping layers.
         w_avg_beta      = 0.995,    # Decay for tracking the moving average of W during training, None = do not track.
         use_text_encoder= False,
+        use_cross_attn  = False,
         text_kwargs     = {},
         use_encoder_decoder=False,
         text_concat=False,
@@ -204,7 +205,12 @@ class MappingNetwork(torch.nn.Module):
             if text_concat:
                 text_out_dim = w_dim - z_dim
                 w_dim = self.w_dim = z_dim
-            self.text_encoder = TextEncoder(w_dim=text_out_dim, use_encoder_decoder=use_encoder_decoder, **text_kwargs)
+            self.text_encoder = TextEncoder(
+                w_dim=text_out_dim,
+                use_encoder_decoder=use_encoder_decoder,
+                return_sequences=use_cross_attn
+                **text_kwargs
+            )
         else:
             self.text_encoder = None
 
@@ -735,6 +741,7 @@ class Generator(torch.nn.Module):
         synthesis_kwargs    = {},   # Arguments for SynthesisNetwork.
         text_concat         = False,
         use_encoder_decoder = False,
+        use_cross_attn      = False,
         w_txt_res           = 32,
         w_txt_dim           = 512,
     ):
@@ -748,6 +755,7 @@ class Generator(torch.nn.Module):
             w_dim=w_dim, img_resolution=img_resolution, img_channels=img_channels,
             text_concat=text_concat,
             use_encoder_decoder=use_encoder_decoder,
+            use_cross_attn=use_cross_attn,
             w_txt_res=w_txt_res,
             w_txt_dim=w_txt_dim,
             **synthesis_kwargs)
@@ -757,6 +765,7 @@ class Generator(torch.nn.Module):
         self.mapping = MappingNetwork(z_dim=z_dim, c_dim=c_dim, w_dim=w_dim, num_ws=self.num_ws,
                                       text_concat=text_concat,
                                       use_encoder_decoder=use_encoder_decoder,
+                                      use_cross_attn=use_cross_attn,
                                       **mapping_kwargs)
 
     def forward(self, z, c, txt=None, txt_gain=1., autocasting=False, truncation_psi=1, truncation_cutoff=None, **synthesis_kwargs):
