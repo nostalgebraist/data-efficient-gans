@@ -263,15 +263,12 @@ class MappingNetwork(torch.nn.Module):
             # x = x + ws_txt if x is not None else ws_txt
 
         # Broadcast.
-        print(("mapping ws_txt before broadcast", ws_txt.shape))
-        print(("mapping num_ws", self.num_ws))
         if self.num_ws is not None:
             with torch.autograd.profiler.record_function('broadcast'):
                 if x is not None:
                     x = x.unsqueeze(1).repeat([1, self.num_ws, 1])
                 if ws_txt is not None:
                     ws_txt = ws_txt.unsqueeze(1).repeat([1, self.num_ws] + [1]*(ws_txt.ndim-1))
-        print(("mapping ws_txt after broadcast", ws_txt.shape))
 
         # Apply truncation.
         if truncation_psi != 1:
@@ -385,9 +382,6 @@ class CrossAttention(torch.nn.Module):
         kv = self.kv(src)
 
         k, v = kv.chunk(2, dim=-1)
-
-        print(("src tgt", src.shape, tgt.shape))
-        print(("qkv", q.shape, k.shape, v.shape))
 
         attn_output, attn_output_weights = self.attn(q, k, v)
         return attn_output.to(dtype)
@@ -909,9 +903,7 @@ class DiscriminatorBlock(torch.nn.Module):
             y = self.skip(x, gain=np.sqrt(0.5))
             if self.use_cross_attn:
                 x = self.conv0(x)
-                print(x.shape)
                 tgt = rearrange(x, 'b c h w -> b (h w) c', h=x.shape[2])
-                print(tgt.shape)
                 tgt = tgt + self.pos_emb(tgt)
                 attn_out = self.cross_attn(src=w, tgt=tgt)
                 attn_out = rearrange(attn_out, 'b (h w) c -> b c h w', h=x.shape[2])
@@ -931,9 +923,7 @@ class DiscriminatorBlock(torch.nn.Module):
         else:
             if self.use_cross_attn:
                 x = self.conv0(x)
-                print(x.shape)
                 tgt = rearrange(x, 'b c h w -> b (h w) c', h=x.shape[2])
-                print(tgt.shape)
                 tgt = tgt + self.pos_emb(tgt)
                 attn_out = self.cross_attn(src=w, tgt=tgt)
                 attn_out = rearrange(attn_out, 'b (h w) c -> b c h w', h=x.shape[2])
@@ -1121,11 +1111,9 @@ class Discriminator(torch.nn.Module):
             block_ws = []
             with torch.autograd.profiler.record_function('split_ws'):
                 ws = ws.to(torch.float32)
-                print(('split_ws ws', ws.shape))
                 for w_idx, res in enumerate(self.block_resolutions):
                     block = getattr(self, f'b{res}')
                     block_w = txt_gain * ws[:, w_idx, ...]
-                    print(('split_ws block_w', block_w.shape))
                     block_ws.append(block_w)
         else:
             block_ws = [None for _ in self.block_resolutions]
