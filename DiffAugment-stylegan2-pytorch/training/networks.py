@@ -861,9 +861,14 @@ class DiscriminatorBlock(torch.nn.Module):
                 x_down = self.pre_gate_proj(x)
                 xw = torch.cat([x_down, w_resampled], dim=1)
                 xw = self.txt_gated_conv(xw)
+                print(xw.shape)
                 x = torch.nn.functional.glu(xw, dim=1)
+                print(x.shape)
             else:
                 x = self.conv1(x, gain=np.sqrt(0.5))
+            print(self.out_channels)
+            print(x.shape)
+            print(y.shape)
             x = y.add_(x)
         else:
             if self.use_ws and not self.use_encoder_decoder:
