@@ -187,7 +187,7 @@ class MappingNetwork(torch.nn.Module):
         text_kwargs     = {},
         use_encoder_decoder=False,
         text_concat=False,
-        w_txt_res=16,
+        w_txt_res=32,
     ):
         super().__init__()
         self.z_dim = z_dim
@@ -366,7 +366,7 @@ class SynthesisBlock(torch.nn.Module):
         fp16_channels_last  = False,        # Use channels-last memory format with FP16?
         use_bf16            = False,
         use_encoder_decoder = False,
-        w_txt_res           = 16,
+        w_txt_res           = 32,
         w_txt_dim           = 512,
         **layer_kwargs,                     # Arguments for SynthesisLayer.
     ):
@@ -710,7 +710,7 @@ class Generator(torch.nn.Module):
         synthesis_kwargs    = {},   # Arguments for SynthesisNetwork.
         text_concat         = False,
         use_encoder_decoder = False,
-        w_txt_res           = 16,
+        w_txt_res           = 32,
         w_txt_dim           = 512,
     ):
         super().__init__()
@@ -764,7 +764,7 @@ class DiscriminatorBlock(torch.nn.Module):
         use_ws              = False,
         w_dim               = 512,
         use_encoder_decoder = False,
-        w_txt_res           = 16,
+        w_txt_res           = 32,
 
     ):
         assert in_channels in [0, tmp_channels]
@@ -779,6 +779,9 @@ class DiscriminatorBlock(torch.nn.Module):
         self.channels_last = (use_fp16 and fp16_channels_last)
         self.use_bf16 = use_bf16
         self.use_ws = use_ws
+        down = w_txt_res // self.resolution
+        if down < 1:
+            use_encoder_decoder = False
         self.use_encoder_decoder = use_encoder_decoder
         self.register_buffer('resample_filter', upfirdn2d.setup_filter(resample_filter))
 
