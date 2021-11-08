@@ -378,10 +378,13 @@ class CrossAttention(torch.nn.Module):
         self.kv = torch.nn.Linear(self.text_dim, 2*self.dim, bias=False)
         self.attn = torch.nn.MultiheadAttention(self.dim, self.heads, batch_first=True)
 
+        self.src_ln = torch.nn.LayerNorm(self.text_dim)
+        self.tgt_ln = torch.nn.LayerNorm(self.dim)
+
     def forward(self, src, tgt):
         dtype = tgt.dtype
-        q = self.q(tgt.to(torch.float32))
-        kv = self.kv(src)
+        q = self.q(self.tgt_ln(tgt.to(torch.float32)))
+        kv = self.kv(self.src_ln(src))
 
         k, v = kv.chunk(2, dim=-1)
 
