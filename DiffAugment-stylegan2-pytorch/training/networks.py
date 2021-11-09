@@ -441,7 +441,11 @@ class SynthesisBlock(torch.nn.Module):
         self.num_conv = 0
         self.num_torgb = 0
 
+        self.use_encoder_decoder = use_encoder_decoder
+        self.use_cross_attn = use_cross_attn
+
         if in_channels == 0:
+            self.use_cross_attn = False
             self.const = torch.nn.Parameter(torch.randn([out_channels, resolution, resolution]))
 
         if in_channels != 0:
@@ -461,9 +465,6 @@ class SynthesisBlock(torch.nn.Module):
         if in_channels != 0 and architecture == 'resnet':
             self.skip = Conv2dLayer(in_channels, out_channels, kernel_size=1, bias=False, up=2,
                 resample_filter=resample_filter, channels_last=self.channels_last)
-
-        self.use_encoder_decoder = use_encoder_decoder
-        self.use_cross_attn = use_cross_attn
 
         if self.use_encoder_decoder:
             down = max(1, w_txt_res // self.resolution)
