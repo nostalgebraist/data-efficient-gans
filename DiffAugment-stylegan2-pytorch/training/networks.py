@@ -259,6 +259,7 @@ class MappingNetwork(torch.nn.Module):
         ws_txt = None
         if txt is not None:
             # TODO: do this after truncate
+            print(txt)
             ws_txt = self.text_encoder(txt)
             # x = x + ws_txt if x is not None else ws_txt
 
