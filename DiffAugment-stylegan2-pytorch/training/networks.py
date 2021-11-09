@@ -487,7 +487,7 @@ class SynthesisBlock(torch.nn.Module):
                                                     axial_dims=(out_channels//2, out_channels//2)
                                                     )
 
-    def forward(self, x, img, ws, ws_txt=None, force_fp32=False, fused_modconv=None, autocasting=False, **layer_kwargs):
+    def forward(self, x, img, ws, ws_txt=None, txt_gain=1., force_fp32=False, fused_modconv=None, autocasting=False, **layer_kwargs):
         misc.assert_shape(ws, [None, self.num_conv + self.num_torgb, self.w_dim])
         w_iter = iter(ws.unbind(dim=1))
         dtype = torch.float16 if self.use_fp16 and not force_fp32 else torch.float32
