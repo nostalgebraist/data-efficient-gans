@@ -552,6 +552,8 @@ class SynthesisBlock(torch.nn.Module):
                 ws_txt_out = txt_gain * ws_txt_out
                 txt_norm = ws_txt_out.norm().item()
                 x = ws_txt_out.add_(x)
+            else:
+                txt_norm = 0.
             finalnorm = x.norm().item()
             print(f"G {self.resolution}: x {xnorm:.6f} |  y {ynorm:.6f} |  txt {txt_norm:.6f} |  sums {finalnorm:.6f}")
         else:
@@ -980,6 +982,8 @@ class DiscriminatorBlock(torch.nn.Module):
                 ws_txt_out = txt_gain * ws_txt_out
                 txt_norm = ws_txt_out.norm().item()
                 x = ws_txt_out.add_(x)
+            else:
+                txt_norm = 0.
             finalnorm = x.norm().item()
             print(f"D {self.resolution}: x {xnorm:.6f} |  y {ynorm:.6f} |  txt {txt_norm:.6f} |  sums {finalnorm:.6f}")
         else:
