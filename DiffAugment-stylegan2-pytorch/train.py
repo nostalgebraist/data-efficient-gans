@@ -313,7 +313,7 @@ def setup_training_loop_kwargs(
         args.D_kwargs.architecture = 'orig' # disable residual skip connections
 
     if g_arch is not None:
-        args.G_kwargs.architecture = g_arch
+        args.G_kwargs.synthesis_kwargs.block_kwargs.architecture = g_arch
 
     if d_arch is not None:
         args.D_kwargs.architecture = d_arch
