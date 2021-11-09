@@ -77,7 +77,7 @@ class StyleGAN2Loss(Loss):
                     with torch.autograd.profiler.record_function('style_mixing'):
                         cutoff = torch.empty([], dtype=torch.int64, device=ws.device).random_(1, ws.shape[1])
                         cutoff = torch.where(torch.rand([], device=ws.device) < self.style_mixing_prob, cutoff, torch.full_like(cutoff, ws.shape[1]))
-                        ws[:, cutoff:] = self.G_mapping(torch.randn_like(z), c, skip_w_avg_update=True)[:, cutoff:]
+                        ws[:, cutoff:] = self.G_mapping(torch.randn_like(z), c, skip_w_avg_update=True)[0][:, cutoff:]
             with misc.ddp_sync(self.G_synthesis, sync):
                 img = self.G_synthesis(ws, ws_txt, txt_gain=txt_gain, autocasting=self.use_amp)
         return img, ws, ws_txt
