@@ -548,8 +548,8 @@ class SynthesisBlock(torch.nn.Module):
                 tgt = rearrange(x, 'b c h w -> b (h w) c', h=x.shape[2])
                 tgt = tgt + self.pos_emb(tgt)
                 attn_out = self.cross_attn(src=ws_txt, tgt=tgt)
-                ws_txt_out = gain_factor * rearrange(attn_out, 'b (h w) c -> b c h w', h=x.shape[2])
-                ws_txt_out = self.cross_attn_proj(ws_txt_out)
+                ws_txt_out = rearrange(attn_out, 'b (h w) c -> b c h w', h=x.shape[2])
+                ws_txt_out = gain_factor * self.cross_attn_proj(ws_txt_out)
                 # x = x/np.sqrt(2) + txt_gain*attn_out/np.sqrt(2)
             x = self.conv1(x, next(w_iter), fused_modconv=fused_modconv, gain=gain_factor, **layer_kwargs)
             # xnorm = x.norm().item()
@@ -970,8 +970,8 @@ class DiscriminatorBlock(torch.nn.Module):
                 tgt = rearrange(x, 'b c h w -> b (h w) c', h=x.shape[2])
                 tgt = tgt + self.pos_emb(tgt)
                 attn_out = self.cross_attn(src=w, tgt=tgt)
-                ws_txt_out = gain_factor * rearrange(attn_out, 'b (h w) c -> b c h w', h=x.shape[2])
-                ws_txt_out = self.cross_attn_proj(ws_txt_out)
+                ws_txt_out = rearrange(attn_out, 'b (h w) c -> b c h w', h=x.shape[2])
+                ws_txt_out = gain_factor * self.cross_attn_proj(ws_txt_out)
                 if self.cross_attn_pdrop > 0:
                     dropmask = torch.rand((ws_txt_out.shape[0],))
                     ws_txt_out = torch.where(dropmask < self.cross_attn_pdrop,
