@@ -488,7 +488,7 @@ class SynthesisBlock(torch.nn.Module):
                                                     axial_dims=(out_channels//2, out_channels//2)
                                                     )
             self.cross_attn_proj = Conv2dLayer(cross_attn_dim, out_channels, kernel_size=1, bias=True,
-                                               activation='lrelu')
+                                               activation='relu')
 
 
     def forward(self, x, img, ws, ws_txt=None, txt_gain=1., force_fp32=False, fused_modconv=None, autocasting=False, **layer_kwargs):
@@ -923,7 +923,7 @@ class DiscriminatorBlock(torch.nn.Module):
                                                     axial_dims=(out_channels//2, out_channels//2)
                                                     )
             self.cross_attn_proj = Conv2dLayer(cross_attn_dim, out_channels, kernel_size=1, bias=True,
-                                               activation='lrelu')
+                                               activation='relu')
 
 
     def forward(self, x, img, w=None, txt_gain=1., force_fp32=False, autocasting=False):
