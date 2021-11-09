@@ -464,7 +464,8 @@ class SynthesisBlock(torch.nn.Module):
 
         if in_channels != 0 and architecture == 'resnet':
             self.skip = Conv2dLayer(in_channels, out_channels, kernel_size=1, bias=False, up=2,
-                resample_filter=resample_filter, channels_last=self.channels_last)
+                resample_filter=resample_filter, channels_last=self.channels_last,
+                conv_clamp=conv_clamp,)
 
         if self.use_encoder_decoder:
             down = max(1, w_txt_res // self.resolution)
@@ -473,7 +474,8 @@ class SynthesisBlock(torch.nn.Module):
                 w_txt_dim, out_channels, kernel_size=3, bias=True,
                 up=up, down=down,
                 resample_filter=resample_filter, channels_last=self.channels_last,
-                activation='relu'
+                activation='relu',
+                conv_clamp=conv_clamp,
             )
 
         if self.use_cross_attn:
@@ -488,7 +490,7 @@ class SynthesisBlock(torch.nn.Module):
                                                     axial_dims=(out_channels//2, out_channels//2)
                                                     )
             self.cross_attn_proj = Conv2dLayer(cross_attn_dim, out_channels, kernel_size=1, bias=True,
-                                               activation='relu')
+                                               activation='relu', conv_clamp=conv_clamp,)
 
 
     def forward(self, x, img, ws, ws_txt=None, txt_gain=1., force_fp32=False, fused_modconv=None, autocasting=False, **layer_kwargs):
@@ -900,7 +902,8 @@ class DiscriminatorBlock(torch.nn.Module):
 
         if architecture == 'resnet':
             self.skip = Conv2dLayer(tmp_channels, out_channels, kernel_size=1, bias=False, down=2,
-                trainable=next(trainable_iter), resample_filter=resample_filter, channels_last=self.channels_last)
+                trainable=next(trainable_iter), resample_filter=resample_filter, channels_last=self.channels_last,
+                conv_clamp=conv_clamp,)
 
         if self.use_encoder_decoder:
             down = max(1, w_txt_res // self.resolution)
@@ -910,6 +913,7 @@ class DiscriminatorBlock(torch.nn.Module):
                 up=up, down=down,
                 resample_filter=resample_filter, channels_last=self.channels_last,
                 activation='relu'
+                conv_clamp=conv_clamp,
             )
         if self.use_cross_attn:
             if cross_attn_dim is None:
@@ -923,7 +927,8 @@ class DiscriminatorBlock(torch.nn.Module):
                                                     axial_dims=(out_channels//2, out_channels//2)
                                                     )
             self.cross_attn_proj = Conv2dLayer(cross_attn_dim, out_channels, kernel_size=1, bias=True,
-                                               activation='relu')
+                                               activation='relu',
+                                               conv_clamp=conv_clamp,)
 
 
     def forward(self, x, img, w=None, txt_gain=1., force_fp32=False, autocasting=False):
