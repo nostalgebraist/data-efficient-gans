@@ -546,7 +546,7 @@ class SynthesisBlock(torch.nn.Module):
                 # x = x/np.sqrt(2) + txt_gain*attn_out/np.sqrt(2)
             x = self.conv1(x, next(w_iter), fused_modconv=fused_modconv, gain=gain_factor, **layer_kwargs)
             xnorm = x.norm().item()
-            ynorm = y.norm.item()
+            ynorm = y.norm().item()
             x = y.add_(x)
             if ws_txt_out is not None:
                 ws_txt_out = txt_gain * ws_txt_out
@@ -974,7 +974,7 @@ class DiscriminatorBlock(torch.nn.Module):
                 x = self.conv0(x)
                 x = self.conv1(x, gain=gain_factor)
             xnorm = x.norm().item()
-            ynorm = y.norm.item()
+            ynorm = y.norm().item()
             x = y.add_(x)
             if ws_txt_out is not None:
                 ws_txt_out = txt_gain * ws_txt_out
