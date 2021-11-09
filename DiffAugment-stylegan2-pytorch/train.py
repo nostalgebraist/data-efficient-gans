@@ -75,6 +75,7 @@ def setup_training_loop_kwargs(
     cross_attn_g_only = None,
     g_arch           = None,
     d_arch           = None,
+    const_z = None,
 
     # Discriminator augmentation.
     diffaugment= None, # Comma-separated list of DiffAugment policy, default = 'color,translation,cutout'
@@ -292,6 +293,9 @@ def setup_training_loop_kwargs(
 
         # TODO: was this a good/bad idea?
         # args.D_kwargs.cmap_dim = latent_size
+
+        if const_z:
+            args.const_z = True
 
     if disable_lazy_reg:
         args.G_reg_interval = None
@@ -586,6 +590,7 @@ class CommaSeparatedList(click.ParamType):
 @click.option('--cross-attn-g-only', type=bool, metavar='BOOL')
 @click.option('--g-arch', type=str)
 @click.option('--d-arch', type=str)
+@click.option('--const-z', type=bool, metavar='BOOL')
 
 # Discriminator augmentation.
 @click.option('--DiffAugment', help='Comma-separated list of DiffAugment policy [default: color,translation,cutout]', type=str)
