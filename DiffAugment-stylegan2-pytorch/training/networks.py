@@ -386,7 +386,7 @@ class CrossAttention(torch.nn.Module):
 
         torch.nn.init.orthogonal_(self.q.weight)
         torch.nn.init.orthogonal_(self.kv.weight)
-        # torch.nn.init.orthogonal_(self.attn.out_proj.weight)
+        torch.nn.init.orthogonal_(self.attn.out_proj.weight)
 
     def forward(self, src, tgt):
         dtype = tgt.dtype
@@ -529,7 +529,7 @@ class SynthesisBlock(torch.nn.Module):
         elif self.architecture == 'resnet':
             gain_factor = np.sqrt(0.5)
             if self.use_encoder_decoder or self.use_cross_attn:
-                gain_factor = np.sqrt(1/3.)
+                gain_factor = 1/3.  # np.sqrt(1/3.)
             ws_txt_out = None
             y = self.skip(x, gain=gain_factor)
             x = self.conv0(x, next(w_iter), fused_modconv=fused_modconv, **layer_kwargs)
@@ -946,7 +946,7 @@ class DiscriminatorBlock(torch.nn.Module):
         if self.architecture == 'resnet':
             gain_factor = np.sqrt(0.5)
             if self.use_encoder_decoder or self.use_cross_attn:
-                gain_factor = np.sqrt(1/3.)
+                gain_factor = 1/3.  # np.sqrt(1/3.)
             ws_txt_out = None
 
             y = self.skip(x, gain=gain_factor)
