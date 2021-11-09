@@ -638,23 +638,27 @@ class SynthesisNetwork(torch.nn.Module):
                 block = getattr(self, f'b{res}')
                 block_w = ws.narrow(1, w_idx, block.num_conv + block.num_torgb)
 
-                if self.use_encoder_decoder or self.use_cross_attn:
-                    block_w_txt = txt_gain * ws_txt.narrow(1, w_idx, 1).squeeze(1)
+                if ws_txt is None:
+                    block_ws.append(block_w)
+                    block_ws_txt.append(None)
                 else:
-                    block_w_txt = txt_gain * ws_txt.narrow(1, w_idx, block.num_conv + block.num_torgb)
+                    if self.use_encoder_decoder or self.use_cross_attn:
+                        block_w_txt = txt_gain * ws_txt.narrow(1, w_idx, 1).squeeze(1)
+                    else:
+                        block_w_txt = txt_gain * ws_txt.narrow(1, w_idx, block.num_conv + block.num_torgb)
 
 
-                if self.use_encoder_decoder or self.use_cross_attn:
-                    pass
-                elif self.text_concat:
-                    block_w = torch.cat([block_w,
-                                         block_w_txt
-                                         ],
-                                        dim=-1)
-                else:
-                    block_w += txt_gain * block_w_txt
-                block_ws.append(block_w)
-                block_ws_txt.append(block_w_txt)
+                    if self.use_encoder_decoder or self.use_cross_attn:
+                        pass
+                    elif self.text_concat:
+                        block_w = torch.cat([block_w,
+                                             block_w_txt
+                                             ],
+                                            dim=-1)
+                    else:
+                        block_w += txt_gain * block_w_txt
+                    block_ws.append(block_w)
+                    block_ws_txt.append(block_w_txt)
                 w_idx += block.num_conv
 
         x = img = None
