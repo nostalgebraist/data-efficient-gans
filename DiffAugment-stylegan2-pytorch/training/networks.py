@@ -694,7 +694,7 @@ class TextEncoder(torch.nn.Module):
         depth = 2,
         head_dim = 64,
         num_tokens = 2500,
-        max_seq_len = 130,
+        max_seq_len = 64,
         rotary_pos_emb = True,
         ff_glu = True,
         use_scalenorm = True,
