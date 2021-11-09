@@ -905,7 +905,7 @@ class DiscriminatorBlock(torch.nn.Module):
                                              text_dim=w_dim,
                                              clamp=conv_clamp)
             self.pos_emb = AxialPositionalEmbedding(dim=tmp_channels,
-                                                    axial_shape=(self.resolution, self.resolution),
+                                                    axial_shape=(self.resolution // 2, self.resolution // 2),
                                                     axial_dims=(tmp_channels//2, tmp_channels//2)
                                                     )
 
