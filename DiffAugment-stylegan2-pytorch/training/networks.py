@@ -423,6 +423,7 @@ class SynthesisBlock(torch.nn.Module):
         use_cross_attn      = False,
         cross_attn_heads    = 2,
         cross_attn_dim       = None,  # default: out_channels
+        txt_gain=1.,
         **layer_kwargs,                     # Arguments for SynthesisLayer.
     ):
         assert architecture in ['orig', 'skip', 'resnet']
@@ -524,7 +525,7 @@ class SynthesisBlock(torch.nn.Module):
                 tgt = tgt + self.pos_emb(tgt)
                 attn_out = self.cross_attn(src=ws_txt, tgt=tgt)
                 attn_out = rearrange(attn_out, 'b (h w) c -> b c h w', h=x.shape[2])
-                x = x/np.sqrt(2) + attn_out/np.sqrt(2)
+                x = x/np.sqrt(2) + txt_gain*attn_out/np.sqrt(2)
         elif self.architecture == 'resnet':
             y = self.skip(x, gain=np.sqrt(0.5))
             x = self.conv0(x, next(w_iter), fused_modconv=fused_modconv, **layer_kwargs)
@@ -538,7 +539,7 @@ class SynthesisBlock(torch.nn.Module):
                 tgt = tgt + self.pos_emb(tgt)
                 attn_out = self.cross_attn(src=ws_txt, tgt=tgt)
                 attn_out = rearrange(attn_out, 'b (h w) c -> b c h w', h=x.shape[2])
-                x = x/np.sqrt(2) + attn_out/np.sqrt(2)
+                x = x/np.sqrt(2) + txt_gain*attn_out/np.sqrt(2)
             x = self.conv1(x, next(w_iter), fused_modconv=fused_modconv, gain=np.sqrt(0.5), **layer_kwargs)
             x = y.add_(x)
         else:
@@ -553,7 +554,7 @@ class SynthesisBlock(torch.nn.Module):
                 tgt = tgt + self.pos_emb(tgt)
                 attn_out = self.cross_attn(src=ws_txt, tgt=tgt)
                 attn_out = rearrange(attn_out, 'b (h w) c -> b c h w', h=x.shape[2])
-                x = x/np.sqrt(2) + attn_out/np.sqrt(2)
+                x = x/np.sqrt(2) + txt_gain*attn_out/np.sqrt(2)
             x = self.conv1(x, next(w_iter), fused_modconv=fused_modconv, **layer_kwargs)
 
         # ToRGB.
@@ -659,7 +660,7 @@ class SynthesisNetwork(torch.nn.Module):
         x = img = None
         for res, cur_ws, cur_ws_txt in zip(self.block_resolutions, block_ws, block_ws_txt):
             block = getattr(self, f'b{res}')
-            x, img = block(x, img, cur_ws, ws_txt=cur_ws_txt, autocasting=autocasting, **block_kwargs)
+            x, img = block(x, img, cur_ws, ws_txt=cur_ws_txt, txt_gain=txt_gain, autocasting=autocasting, **block_kwargs)
         return img
 
 #----------------------------------------------------------------------------
@@ -898,7 +899,7 @@ class DiscriminatorBlock(torch.nn.Module):
                                                     )
 
 
-    def forward(self, x, img, w=None, force_fp32=False, autocasting=False):
+    def forward(self, x, img, w=None, txt_gain=1., force_fp32=False, autocasting=False):
         dtype = torch.float16 if self.use_fp16 and not force_fp32 else torch.float32
         if self.use_bf16:
             dtype = torch.bfloat16
@@ -935,7 +936,7 @@ class DiscriminatorBlock(torch.nn.Module):
                 if self.cross_attn_pdrop > 0:
                     dropmask = torch.rand((attn_out.shape[0],))
                     attn_out = torch.where(dropmask < self.cross_attn_pdrop, torch.zeros_like(attn_out), attn_out)
-                x = x/np.sqrt(2) + attn_out/np.sqrt(2)
+                x = x/np.sqrt(2) + txt_gain*attn_out/np.sqrt(2)
             elif self.use_ws and self.use_encoder_decoder:
                 x = self.conv0(x)
                 w = w.to(dtype=dtype, memory_format=memory_format)
@@ -958,7 +959,7 @@ class DiscriminatorBlock(torch.nn.Module):
                 if self.cross_attn_pdrop > 0:
                     dropmask = torch.rand((attn_out.shape[0],))
                     attn_out = torch.where(dropmask < self.cross_attn_pdrop, torch.zeros_like(attn_out), attn_out)
-                x = x/np.sqrt(2) + attn_out/np.sqrt(2)
+                x = x/np.sqrt(2) + txt_gain*attn_out/np.sqrt(2)
             elif self.use_ws and self.use_encoder_decoder:
                 x = self.conv0(x)
                 w = w.to(dtype=dtype, memory_format=memory_format)
@@ -1156,7 +1157,7 @@ class Discriminator(torch.nn.Module):
 
         for res, cur_ws in zip(self.block_resolutions, block_ws):
             block = getattr(self, f'b{res}')
-            x, img = block(x, img, cur_ws, **block_kwargs)
+            x, img = block(x, img, cur_ws, txt_gain=txt_gain, **block_kwargs)
 
         # TODO: use txt at lower res somehow
         cmap = None
