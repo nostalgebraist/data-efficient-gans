@@ -899,7 +899,7 @@ class DiscriminatorBlock(torch.nn.Module):
             )
         if self.use_cross_attn:
             if cross_attn_dim is None:
-                cross_attn_dim = tmp_channels
+                cross_attn_dim = out_channels
             self.cross_attn = CrossAttention(dim=cross_attn_dim,
                                              heads=cross_attn_heads,
                                              text_dim=w_dim,
