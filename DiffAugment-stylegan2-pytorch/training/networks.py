@@ -945,6 +945,7 @@ class DiscriminatorBlock(torch.nn.Module):
             y = self.skip(x, gain=gain_factor)
             if self.use_cross_attn:
                 x = self.conv0(x)
+                x = self.conv1(x, gain=gain_factor)
                 tgt = rearrange(x, 'b c h w -> b (h w) c', h=x.shape[2])
                 tgt = tgt + self.pos_emb(tgt)
                 attn_out = self.cross_attn(src=w, tgt=tgt)
@@ -963,9 +964,10 @@ class DiscriminatorBlock(torch.nn.Module):
                 # x = x + ws_txt_out
             elif self.use_ws:
                 x = self.conv0(x, w)
+                x = self.conv1(x, gain=gain_factor)
             else:
                 x = self.conv0(x)
-            x = self.conv1(x, gain=gain_factor)
+                x = self.conv1(x, gain=gain_factor)
             x = y.add_(x)
             if ws_txt_out is not None:
                 ws_txt_out = txt_gain * ws_txt_out
