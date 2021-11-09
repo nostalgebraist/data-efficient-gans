@@ -257,9 +257,8 @@ class MappingNetwork(torch.nn.Module):
                     self.w_avg.copy_(x.detach().mean(dim=0).to(self.w_avg.dtype).lerp(self.w_avg, self.w_avg_beta))
 
         ws_txt = None
-        if txt is not None:
+        if txt is not None and self.text_encoder is not None:
             # TODO: do this after truncate
-            print(txt)
             ws_txt = self.text_encoder(txt)
             # x = x + ws_txt if x is not None else ws_txt
 
