@@ -529,7 +529,7 @@ class SynthesisBlock(torch.nn.Module):
         elif self.architecture == 'resnet':
             gain_factor = np.sqrt(0.5)
             if self.use_encoder_decoder or self.use_cross_attn:
-                gain_factor = 1/3.  # np.sqrt(1/3.)
+                gain_factor = np.sqrt(1/3.)
             ws_txt_out = None
             y = self.skip(x, gain=gain_factor)
             x = self.conv0(x, next(w_iter), fused_modconv=fused_modconv, **layer_kwargs)
@@ -708,6 +708,8 @@ class TextEncoder(torch.nn.Module):
 
         if inner_dim is None:
             inner_dim = w_dim
+
+        head_dim = min(head_dim, inner_dim)
 
         assert inner_dim % head_dim == 0
         n_heads = inner_dim // head_dim
@@ -946,7 +948,7 @@ class DiscriminatorBlock(torch.nn.Module):
         if self.architecture == 'resnet':
             gain_factor = np.sqrt(0.5)
             if self.use_encoder_decoder or self.use_cross_attn:
-                gain_factor = 1/3.  # np.sqrt(1/3.)
+                gain_factor = np.sqrt(1/3.)
             ws_txt_out = None
 
             y = self.skip(x, gain=gain_factor)
