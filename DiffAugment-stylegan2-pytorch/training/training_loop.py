@@ -225,7 +225,7 @@ def training_loop(
                 others = " ".join([f"{k}={v}" for k, v in g_.items() if k != 'params'])
                 print(f"{name} param group {i_}: {len(g_['params'])} params, {others}")
         else:
-            param_groups = {"params": module.parameters()}
+            param_groups = [{"params": module.parameters()}]
 
         if reg_interval is None:
             opt = dnnlib.util.construct_class_by_name(param_groups, **opt_kwargs) # subclass of torch.optim.Optimizer
