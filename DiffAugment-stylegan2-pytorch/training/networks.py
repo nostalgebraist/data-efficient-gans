@@ -386,7 +386,7 @@ class CrossAttention(torch.nn.Module):
 
         torch.nn.init.orthogonal_(self.q.weight)
         torch.nn.init.orthogonal_(self.kv.weight)
-        torch.nn.init.orthogonal_(self.attn.out_proj.weight)
+        # torch.nn.init.orthogonal_(self.attn.out_proj.weight)
 
     def forward(self, src, tgt):
         dtype = tgt.dtype
