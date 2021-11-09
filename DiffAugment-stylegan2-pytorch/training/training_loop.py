@@ -207,7 +207,7 @@ def training_loop(
     loss = dnnlib.util.construct_class_by_name(device=device, **ddp_modules, **loss_kwargs) # subclass of training.loss.Loss
     phases = []
     for name, module, opt_kwargs, reg_interval, scaler, reg_scaler in [('G', G, G_opt_kwargs, G_reg_interval, loss.G_scaler, loss.Greg_scaler), ('D', D, D_opt_kwargs, D_reg_interval, loss.D_scaler, loss.Dreg_scaler)]:
-        if module.mapping.text_encoder is not None:
+        if hasattr(module, 'mapping') and module.mapping.text_encoder is not None:
             param_groups = [
                 {
                     "params": [p for n, p in module.named_parameters() if not(is_text_lr(n))]
