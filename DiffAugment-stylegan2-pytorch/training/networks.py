@@ -441,7 +441,11 @@ class SynthesisBlock(torch.nn.Module):
         self.num_conv = 0
         self.num_torgb = 0
 
+        self.use_encoder_decoder = use_encoder_decoder
+        self.use_cross_attn = use_cross_attn
+
         if in_channels == 0:
+            self.use_cross_attn = False
             self.const = torch.nn.Parameter(torch.randn([out_channels, resolution, resolution]))
 
         if in_channels != 0:
@@ -461,9 +465,6 @@ class SynthesisBlock(torch.nn.Module):
         if in_channels != 0 and architecture == 'resnet':
             self.skip = Conv2dLayer(in_channels, out_channels, kernel_size=1, bias=False, up=2,
                 resample_filter=resample_filter, channels_last=self.channels_last)
-
-        self.use_encoder_decoder = use_encoder_decoder
-        self.use_cross_attn = use_cross_attn
 
         if self.use_encoder_decoder:
             down = max(1, w_txt_res // self.resolution)
@@ -486,6 +487,9 @@ class SynthesisBlock(torch.nn.Module):
                                                     axial_shape=(self.resolution, self.resolution),
                                                     axial_dims=(out_channels//2, out_channels//2)
                                                     )
+            self.cross_attn_proj = Conv2dLayer(cross_attn_dim, out_channels, kernel_size=1, bias=True,
+                                               activation='lrelu')
+
 
     def forward(self, x, img, ws, ws_txt=None, txt_gain=1., force_fp32=False, fused_modconv=None, autocasting=False, **layer_kwargs):
         misc.assert_shape(ws, [None, self.num_conv + self.num_torgb, self.w_dim])
@@ -543,6 +547,7 @@ class SynthesisBlock(torch.nn.Module):
                 tgt = tgt + self.pos_emb(tgt)
                 attn_out = self.cross_attn(src=ws_txt, tgt=tgt)
                 ws_txt_out = gain_factor * rearrange(attn_out, 'b (h w) c -> b c h w', h=x.shape[2])
+                ws_txt_out = self.cross_attn_proj(ws_txt_out)
                 # x = x/np.sqrt(2) + txt_gain*attn_out/np.sqrt(2)
             x = self.conv1(x, next(w_iter), fused_modconv=fused_modconv, gain=gain_factor, **layer_kwargs)
             # xnorm = x.norm().item()
@@ -917,6 +922,8 @@ class DiscriminatorBlock(torch.nn.Module):
                                                     axial_shape=(self.resolution // 2, self.resolution // 2),
                                                     axial_dims=(out_channels//2, out_channels//2)
                                                     )
+            self.cross_attn_proj = Conv2dLayer(cross_attn_dim, out_channels, kernel_size=1, bias=True,
+                                               activation='lrelu')
 
 
     def forward(self, x, img, w=None, txt_gain=1., force_fp32=False, autocasting=False):
@@ -959,6 +966,7 @@ class DiscriminatorBlock(torch.nn.Module):
                 tgt = tgt + self.pos_emb(tgt)
                 attn_out = self.cross_attn(src=w, tgt=tgt)
                 ws_txt_out = gain_factor * rearrange(attn_out, 'b (h w) c -> b c h w', h=x.shape[2])
+                ws_txt_out = self.cross_attn_proj(ws_txt_out)
                 if self.cross_attn_pdrop > 0:
                     dropmask = torch.rand((ws_txt_out.shape[0],))
                     ws_txt_out = torch.where(dropmask < self.cross_attn_pdrop,
