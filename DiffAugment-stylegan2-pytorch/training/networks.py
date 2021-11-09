@@ -527,21 +527,28 @@ class SynthesisBlock(torch.nn.Module):
                 attn_out = rearrange(attn_out, 'b (h w) c -> b c h w', h=x.shape[2])
                 x = x/np.sqrt(2) + txt_gain*attn_out/np.sqrt(2)
         elif self.architecture == 'resnet':
-            y = self.skip(x, gain=np.sqrt(0.5))
+            gain_factor = np.sqrt(0.5)
+            if self.use_encoder_decoder or self.use_cross_attn:
+                gain_factor = np.sqrt(1/3.)
+            ws_txt_out = None
+            y = self.skip(x, gain=gain_factor)
             x = self.conv0(x, next(w_iter), fused_modconv=fused_modconv, **layer_kwargs)
             if self.use_encoder_decoder:
                 ws_txt = ws_txt.to(dtype=dtype, memory_format=memory_format)
                 ws_txt = ws_txt.transpose(1, 3)
-                ws_txt_out = self.txt_conv(ws_txt)
-                x = x + ws_txt_out
+                ws_txt_out = self.txt_conv(ws_txt, gain=gain_factor)
+                # x = x + ws_txt_out
             elif self.use_cross_attn:
                 tgt = rearrange(x, 'b c h w -> b (h w) c', h=x.shape[2])
                 tgt = tgt + self.pos_emb(tgt)
                 attn_out = self.cross_attn(src=ws_txt, tgt=tgt)
-                attn_out = rearrange(attn_out, 'b (h w) c -> b c h w', h=x.shape[2])
-                x = x/np.sqrt(2) + txt_gain*attn_out/np.sqrt(2)
-            x = self.conv1(x, next(w_iter), fused_modconv=fused_modconv, gain=np.sqrt(0.5), **layer_kwargs)
+                ws_txt_out = gain_factor * rearrange(attn_out, 'b (h w) c -> b c h w', h=x.shape[2])
+                # x = x/np.sqrt(2) + txt_gain*attn_out/np.sqrt(2)
+            x = self.conv1(x, next(w_iter), fused_modconv=fused_modconv, gain=gain_factor, **layer_kwargs)
             x = y.add_(x)
+            if ws_txt_out is not None:
+                ws_txt_out = txt_gain * ws_txt_out
+                x = ws_txt_out.add_(x)
         else:
             x = self.conv0(x, next(w_iter), fused_modconv=fused_modconv, **layer_kwargs)
             if self.use_encoder_decoder:
@@ -930,29 +937,39 @@ class DiscriminatorBlock(torch.nn.Module):
 
         # Main layers.
         if self.architecture == 'resnet':
-            y = self.skip(x, gain=np.sqrt(0.5))
+            gain_factor = np.sqrt(0.5)
+            if self.use_encoder_decoder or self.use_cross_attn:
+                gain_factor = np.sqrt(1/3.)
+            ws_txt_out = None
+
+            y = self.skip(x, gain=gain_factor)
             if self.use_cross_attn:
                 x = self.conv0(x)
                 tgt = rearrange(x, 'b c h w -> b (h w) c', h=x.shape[2])
                 tgt = tgt + self.pos_emb(tgt)
                 attn_out = self.cross_attn(src=w, tgt=tgt)
-                attn_out = rearrange(attn_out, 'b (h w) c -> b c h w', h=x.shape[2])
+                ws_txt_out = gain_factor * earrange(attn_out, 'b (h w) c -> b c h w', h=x.shape[2])
                 if self.cross_attn_pdrop > 0:
-                    dropmask = torch.rand((attn_out.shape[0],))
-                    attn_out = torch.where(dropmask < self.cross_attn_pdrop, torch.zeros_like(attn_out), attn_out)
-                x = x/np.sqrt(2) + txt_gain*attn_out/np.sqrt(2)
+                    dropmask = torch.rand((ws_txt_out.shape[0],))
+                    ws_txt_out = torch.where(dropmask < self.cross_attn_pdrop,
+                                             torch.zeros_like(ws_txt_out),
+                                             ws_txt_out)
+                # x = x/np.sqrt(2) + txt_gain*attn_out/np.sqrt(2)
             elif self.use_ws and self.use_encoder_decoder:
                 x = self.conv0(x)
                 w = w.to(dtype=dtype, memory_format=memory_format)
                 w = w.transpose(1, 3)
-                ws_txt_out = self.txt_conv(w)
-                x = x + ws_txt_out
+                ws_txt_out = self.txt_conv(w, gain=gain_factor)
+                # x = x + ws_txt_out
             elif self.use_ws:
                 x = self.conv0(x, w)
             else:
                 x = self.conv0(x)
-            x = self.conv1(x, gain=np.sqrt(0.5))
+            x = self.conv1(x, gain=gain_factor)
             x = y.add_(x)
+            if ws_txt_out is not None:
+                ws_txt_out = txt_gain * ws_txt_out
+                x = ws_txt_out.add_(x)
         else:
             if self.use_cross_attn:
                 x = self.conv0(x)
