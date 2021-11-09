@@ -692,7 +692,7 @@ class TextEncoder(torch.nn.Module):
         w_dim,                      # output dim
         inner_dim = None,           # model dim (default = w_dim)
         depth = 2,
-        head_dim = 128,
+        head_dim = 64,
         num_tokens = 2500,
         max_seq_len = 130,
         rotary_pos_emb = True,
