@@ -1104,7 +1104,7 @@ class Discriminator(torch.nn.Module):
         use_ws              = False,
         use_encoder_decoder = False,
         use_cross_attn      = False,
-        cross_attn_resolution = 128,
+        cross_attn_resolution = 256,
         cross_attn_pdrop    = 0,
     ):
         super().__init__()
