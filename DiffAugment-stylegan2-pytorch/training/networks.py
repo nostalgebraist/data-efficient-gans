@@ -545,10 +545,15 @@ class SynthesisBlock(torch.nn.Module):
                 ws_txt_out = gain_factor * rearrange(attn_out, 'b (h w) c -> b c h w', h=x.shape[2])
                 # x = x/np.sqrt(2) + txt_gain*attn_out/np.sqrt(2)
             x = self.conv1(x, next(w_iter), fused_modconv=fused_modconv, gain=gain_factor, **layer_kwargs)
+            xnorm = x.norm().item()
+            ynorm = y.norm.item()
             x = y.add_(x)
             if ws_txt_out is not None:
                 ws_txt_out = txt_gain * ws_txt_out
+                txt_norm = ws_txt_out.norm().item()
                 x = ws_txt_out.add_(x)
+            finalnorm = x.norm().item()
+            print(f"G {self.resolution}: x {xnorm:.6f} |  y {ynorm:.6f} |  txt {txt_norm:.6f} |  sums {finalnorm:.6f}")
         else:
             x = self.conv0(x, next(w_iter), fused_modconv=fused_modconv, **layer_kwargs)
             if self.use_encoder_decoder:
@@ -968,10 +973,15 @@ class DiscriminatorBlock(torch.nn.Module):
             else:
                 x = self.conv0(x)
                 x = self.conv1(x, gain=gain_factor)
+            xnorm = x.norm().item()
+            ynorm = y.norm.item()
             x = y.add_(x)
             if ws_txt_out is not None:
                 ws_txt_out = txt_gain * ws_txt_out
+                txt_norm = ws_txt_out.norm().item()
                 x = ws_txt_out.add_(x)
+            finalnorm = x.norm().item()
+            print(f"D {self.resolution}: x {xnorm:.6f} |  y {ynorm:.6f} |  txt {txt_norm:.6f} |  sums {finalnorm:.6f}")
         else:
             if self.use_cross_attn:
                 x = self.conv0(x)
