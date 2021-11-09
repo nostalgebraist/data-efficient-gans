@@ -43,7 +43,7 @@ class Loss:
 #----------------------------------------------------------------------------
 
 class StyleGAN2Loss(Loss):
-    def __init__(self, device, G_mapping, G_synthesis, D, diffaugment='', augment_pipe=None, style_mixing_prob=0.9, r1_gamma=10, pl_batch_shrink=2, pl_decay=0.01, pl_weight=2, use_amp=False):
+    def __init__(self, device, G_mapping, G_synthesis, D, diffaugment='', augment_pipe=None, style_mixing_prob=0.9, r1_gamma=10, pl_batch_shrink=2, pl_decay=0.01, pl_weight=2, use_amp=False, const_z=False):
         super().__init__()
         self.device = device
         self.G_mapping = G_mapping
@@ -58,6 +58,7 @@ class StyleGAN2Loss(Loss):
         self.pl_weight = pl_weight
         self.pl_mean = torch.zeros([], device=device)
         self.use_amp = use_amp
+        self.const_z = const_z
 
         self.G_scaler = FakeScaler()
         self.Greg_scaler = FakeScaler()
@@ -73,7 +74,7 @@ class StyleGAN2Loss(Loss):
         with torch.cuda.amp.autocast(enabled=self.use_amp):
             with misc.ddp_sync(self.G_mapping, sync):
                 ws, ws_txt = self.G_mapping(z, c, txt)
-                if self.style_mixing_prob > 0:
+                if self.style_mixing_prob > 0 and not self.const_z:
                     with torch.autograd.profiler.record_function('style_mixing'):
                         cutoff = torch.empty([], dtype=torch.int64, device=ws.device).random_(1, ws.shape[1])
                         cutoff = torch.where(torch.rand([], device=ws.device) < self.style_mixing_prob, cutoff, torch.full_like(cutoff, ws.shape[1]))
@@ -96,7 +97,7 @@ class StyleGAN2Loss(Loss):
         assert phase in ['Gmain', 'Greg', 'Gboth', 'Dmain', 'Dreg', 'Dboth']
         do_Gmain = (phase in ['Gmain', 'Gboth'])
         do_Dmain = (phase in ['Dmain', 'Dboth'])
-        do_Gpl   = (phase in ['Greg', 'Gboth']) and (self.pl_weight != 0)
+        do_Gpl   = (phase in ['Greg', 'Gboth']) and (self.pl_weight != 0) and (not self.const_z)
         do_Dr1   = (phase in ['Dreg', 'Dboth']) and (self.r1_gamma != 0)
 
         # Gmain: Maximize logits for generated images.

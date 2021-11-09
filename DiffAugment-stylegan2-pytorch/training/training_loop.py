@@ -122,6 +122,7 @@ def training_loop(
     text_warmup_kimg        = 0,
     text_lr                 = None,
     text_momentum           = None,
+    const_z                 = False,
 ):
     # Initialize.
     start_time = time.time()
@@ -204,6 +205,7 @@ def training_loop(
     # Setup training phases.
     if rank == 0:
         print('Setting up training phases...')
+    loss_kwargs['const_z'] = const_z
     loss = dnnlib.util.construct_class_by_name(device=device, **ddp_modules, **loss_kwargs) # subclass of training.loss.Loss
     phases = []
     for name, module, opt_kwargs, reg_interval, scaler, reg_scaler in [('G', G, G_opt_kwargs, G_reg_interval, loss.G_scaler, loss.Greg_scaler), ('D', D, D_opt_kwargs, D_reg_interval, loss.D_scaler, loss.Dreg_scaler)]:
@@ -265,7 +267,10 @@ def training_loop(
         print('Exporting sample images...')
         grid_size, images, labels, txts = setup_snapshot_image_grid(training_set=training_set)
         save_image_grid(images, os.path.join(run_dir, 'reals.png'), drange=[0,255], grid_size=grid_size)
-        grid_z = torch.randn([labels.shape[0], G.z_dim], device=device).split(batch_gpu)
+        if const_z:
+            grid_z = torch.zeros([labels.shape[0], G.z_dim], device=device).split(batch_gpu)
+        else:
+            grid_z = torch.randn([labels.shape[0], G.z_dim], device=device).split(batch_gpu)
         grid_c = torch.from_numpy(labels).to(device).split(batch_gpu)
         grid_txt = txts
         if grid_txt is not None:
@@ -313,6 +318,10 @@ def training_loop(
                 phase_real_txt = [None] * len(phases)
             phase_real_img = (phase_real_img.to(device).to(torch.float32) / 127.5 - 1).split(batch_gpu)
             phase_real_c = phase_real_c.to(device).split(batch_gpu)
+            if const_z:
+                all_gen_z = torch.zeros([len(phases) * batch_size, G.z_dim], device=device).split(batch_gpu)
+            else:
+                all_gen_z = torch.randn([labels.shape[0], G.z_dim], device=device).split(batch_gpu)
             all_gen_z = torch.randn([len(phases) * batch_size, G.z_dim], device=device)
             all_gen_z = [phase_gen_z.split(batch_gpu) for phase_gen_z in all_gen_z.split(batch_size)]
             all_gen_c = [training_set.get_label(np.random.randint(len(training_set))) for _ in range(len(phases) * batch_size)]
