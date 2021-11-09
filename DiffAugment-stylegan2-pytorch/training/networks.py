@@ -912,7 +912,7 @@ class DiscriminatorBlock(torch.nn.Module):
                 w_dim, tmp_channels, kernel_size=3, bias=True,
                 up=up, down=down,
                 resample_filter=resample_filter, channels_last=self.channels_last,
-                activation='relu'
+                activation='relu',
                 conv_clamp=conv_clamp,
             )
         if self.use_cross_attn:
