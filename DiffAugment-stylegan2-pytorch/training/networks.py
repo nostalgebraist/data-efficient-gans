@@ -477,14 +477,14 @@ class SynthesisBlock(torch.nn.Module):
 
         if self.use_cross_attn:
             if cross_attn_dim is None:
-                cross_attn_dim = out_channels
+                cross_attn_dim = in_channels
             self.cross_attn = CrossAttention(dim=cross_attn_dim,
                                              heads=cross_attn_heads,
                                              text_dim=w_txt_dim,
                                              clamp=conv_clamp)
-            self.pos_emb = AxialPositionalEmbedding(dim=out_channels,
-                                                    axial_shape=(self.resolution, self.resolution),
-                                                    axial_dims=(out_channels//2, out_channels//2)
+            self.pos_emb = AxialPositionalEmbedding(dim=in_channels,
+                                                    axial_shape=(self.resolution // 2, self.resolution // 2),
+                                                    axial_dims=(in_channels//2, in_channels//2)
                                                     )
 
     def forward(self, x, img, ws, ws_txt=None, txt_gain=1., force_fp32=False, fused_modconv=None, autocasting=False, **layer_kwargs):
@@ -532,7 +532,6 @@ class SynthesisBlock(torch.nn.Module):
                 gain_factor = np.sqrt(1/3.)
             ws_txt_out = None
             y = self.skip(x, gain=gain_factor)
-            x = self.conv0(x, next(w_iter), fused_modconv=fused_modconv, **layer_kwargs)
             if self.use_encoder_decoder:
                 ws_txt = ws_txt.to(dtype=dtype, memory_format=memory_format)
                 ws_txt = ws_txt.transpose(1, 3)
@@ -544,6 +543,7 @@ class SynthesisBlock(torch.nn.Module):
                 attn_out = self.cross_attn(src=ws_txt, tgt=tgt)
                 ws_txt_out = gain_factor * rearrange(attn_out, 'b (h w) c -> b c h w', h=x.shape[2])
                 # x = x/np.sqrt(2) + txt_gain*attn_out/np.sqrt(2)
+            x = self.conv0(x, next(w_iter), fused_modconv=fused_modconv, **layer_kwargs)
             x = self.conv1(x, next(w_iter), fused_modconv=fused_modconv, gain=gain_factor, **layer_kwargs)
             x = y.add_(x)
             if ws_txt_out is not None:
