@@ -60,6 +60,8 @@ def setup_training_loop_kwargs(
     ema_override     = None,
     ramp_override    = None,
     bf16             = None,
+    g_arch           = None,
+    d_arch           = None,
 
     # Discriminator augmentation.
     diffaugment= None, # Comma-separated list of DiffAugment policy, default = 'color,translation,cutout'
@@ -242,6 +244,12 @@ def setup_training_loop_kwargs(
         args.loss_kwargs.pl_weight = 0 # disable path length regularization
         args.loss_kwargs.style_mixing_prob = 0 # disable style mixing
         args.D_kwargs.architecture = 'orig' # disable residual skip connections
+
+    if g_arch is not None:
+        args.G_kwargs.synthesis_kwargs.architecture = g_arch
+
+    if d_arch is not None:
+        args.D_kwargs.architecture = d_arch
 
     if pl_weight is not None:
         args.loss_kwargs.pl_weight = pl_weight
@@ -496,6 +504,8 @@ class CommaSeparatedList(click.ParamType):
 @click.option('--ema-override', type=int)
 @click.option('--ramp-override', type=float)
 @click.option('--bf16', type=bool)
+@click.option('--g-arch', type=str)
+@click.option('--d-arch', type=str)
 
 # Discriminator augmentation.
 @click.option('--DiffAugment', help='Comma-separated list of DiffAugment policy [default: color,translation,cutout]', type=str)
