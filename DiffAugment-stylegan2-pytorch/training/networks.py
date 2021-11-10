@@ -367,7 +367,8 @@ class CrossAttention(torch.nn.Module):
         heads,
         text_dim=512,
         clamp=None,
-        init_gain=5e-1
+        init_gain=1.,
+        const_text_gain=False,
     ):
         super().__init__()
         self.dim = dim
@@ -382,7 +383,7 @@ class CrossAttention(torch.nn.Module):
         self.src_ln = torch.nn.LayerNorm(self.text_dim)
         self.tgt_ln = torch.nn.LayerNorm(self.dim)
 
-        self.gain = torch.nn.Parameter(torch.as_tensor(np.log(init_gain)))
+        self.gain = torch.nn.Parameter(torch.as_tensor(np.log(init_gain)), trainable=(not const_text_gain))
 
         torch.nn.init.orthogonal_(self.q.weight)
         torch.nn.init.orthogonal_(self.kv.weight)
@@ -424,6 +425,7 @@ class SynthesisBlock(torch.nn.Module):
         cross_attn_heads    = 2,
         cross_attn_dim       = None,  # default: out_channels
         txt_gain=1.,
+        const_text_gain     = False,
         **layer_kwargs,                     # Arguments for SynthesisLayer.
     ):
         assert architecture in ['orig', 'skip', 'resnet']
@@ -484,7 +486,8 @@ class SynthesisBlock(torch.nn.Module):
             self.cross_attn = CrossAttention(dim=cross_attn_dim,
                                              heads=cross_attn_heads,
                                              text_dim=w_txt_dim,
-                                             clamp=conv_clamp)
+                                             clamp=conv_clamp,
+                                             const_text_gain=const_text_gain)
             self.pos_emb = AxialPositionalEmbedding(dim=out_channels,
                                                     axial_shape=(self.resolution, self.resolution),
                                                     axial_dims=(out_channels//2, out_channels//2)
@@ -861,6 +864,7 @@ class DiscriminatorBlock(torch.nn.Module):
         cross_attn_heads    = 2,
         cross_attn_dim      = None,  # default: tmp_channels
         cross_attn_pdrop    = 0,
+        const_text_gain     = False,
     ):
         assert in_channels in [0, tmp_channels]
         assert architecture in ['orig', 'skip', 'resnet']
@@ -924,7 +928,8 @@ class DiscriminatorBlock(torch.nn.Module):
             self.cross_attn = CrossAttention(dim=cross_attn_dim,
                                              heads=cross_attn_heads,
                                              text_dim=w_dim,
-                                             clamp=conv_clamp)
+                                             clamp=conv_clamp,
+                                             const_text_gain=const_text_gain)
             self.pos_emb = AxialPositionalEmbedding(dim=out_channels,
                                                     axial_shape=(self.resolution // 2, self.resolution // 2),
                                                     axial_dims=(out_channels//2, out_channels//2)
