@@ -384,7 +384,7 @@ class CrossAttention(torch.nn.Module):
         self.tgt_ln = torch.nn.LayerNorm(self.dim)
 
         if const_text_gain:
-            self.gain = np.log(init_gain)
+            self.gain = torch.as_tensor(np.log(init_gain))
         else:
             self.gain = torch.nn.Parameter(torch.as_tensor(np.log(init_gain)))
 
