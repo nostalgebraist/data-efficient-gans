@@ -383,7 +383,10 @@ class CrossAttention(torch.nn.Module):
         self.src_ln = torch.nn.LayerNorm(self.text_dim)
         self.tgt_ln = torch.nn.LayerNorm(self.dim)
 
-        self.gain = torch.nn.Parameter(torch.as_tensor(np.log(init_gain)), requires_grad=(not const_text_gain))
+        if const_text_gain:
+            self.gain = np.log(init_gain))
+        else:
+            self.gain = torch.nn.Parameter(torch.as_tensor(np.log(init_gain)))
 
         torch.nn.init.orthogonal_(self.q.weight)
         torch.nn.init.orthogonal_(self.kv.weight)
