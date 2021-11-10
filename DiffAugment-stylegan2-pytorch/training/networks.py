@@ -445,7 +445,7 @@ class SynthesisBlock(torch.nn.Module):
         self.use_cross_attn = use_cross_attn
 
         if in_channels == 0:
-            self.use_cross_attn = False
+            # self.use_cross_attn = False
             self.const = torch.nn.Parameter(torch.randn([out_channels, resolution, resolution]))
 
         if in_channels != 0:
@@ -527,11 +527,14 @@ class SynthesisBlock(torch.nn.Module):
                 x = x + ws_txt_out
             x = self.conv1(x, next(w_iter), fused_modconv=fused_modconv, **layer_kwargs)
             if self.use_cross_attn:
+                gain_factor = np.sqrt(0.5)
                 tgt = rearrange(x, 'b c h w -> b (h w) c', h=x.shape[2])
                 tgt = tgt + self.pos_emb(tgt)
                 attn_out = self.cross_attn(src=ws_txt, tgt=tgt)
-                attn_out = rearrange(attn_out, 'b (h w) c -> b c h w', h=x.shape[2])
-                x = x/np.sqrt(2) + txt_gain*attn_out/np.sqrt(2)
+                ws_txt_out = rearrange(attn_out, 'b (h w) c -> b c h w', h=x.shape[2])
+                ws_txt_out = gain_factor * self.cross_attn_proj(ws_txt_out)
+                ws_txt_out = txt_gain * ws_txt_out
+                x = ws_txt_out.add_(gain_factor * x)
         elif self.architecture == 'resnet':
             gain_factor = np.sqrt(0.5)
             if self.use_encoder_decoder or self.use_cross_attn:
